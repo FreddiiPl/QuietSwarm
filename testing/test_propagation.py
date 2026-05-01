@@ -2,7 +2,7 @@ from QuietSwarm.Classes.Swarm import Swarm
 
 
 def main():
-    orbitalfile = r"/Users/fredrikplane/Documents/GithubProjects/QuietSwarm/testing/test.dat"
+    orbitalfile = SEARCH_PATH
     
     swarm = Swarm(orbitalfile)
 
