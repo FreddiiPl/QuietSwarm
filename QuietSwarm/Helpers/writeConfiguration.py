@@ -77,8 +77,8 @@ if __name__=="__main__":
     path     = os.getcwd()
     
     
-    parser = argparse.ArgumentParser(description="Spara orbital-konfigurationer.")
-    parser.add_argument("--filename", type=str, required=True, help="Namnet på filen som ska skrivas")
+    parser = argparse.ArgumentParser(description="Save orbital configurations.")
+    parser.add_argument("--filename", type=str, required=True, help="Name of data file")
     
     args = parser.parse_args()
     
