@@ -7,7 +7,7 @@ State initialize_state(OrbitalParameters orbit) {
     
     double rightAscensionOfAscendingNode = orbit.rightAscensionOfAscendingNode;
     double argumentOfPerigee             = orbit.argumentOfPerigee;
-    double inlinationAngle               = orbit.inlinationAngle;
+    double inclinationAngle               = orbit.inclinationAngle;
     double phaseAngles                   = orbit.phaseAngles;
     double semiMajorAxis                 = orbit.semiMajorAxis;
     double eccentricity                  = orbit.eccentricity;
@@ -38,8 +38,8 @@ State initialize_state(OrbitalParameters orbit) {
     Transform position and velocity to Earth-Centered Inertial (ECI) coordinates
     */
    RotationalMatrix R = defineRotationalMatrix(rightAscensionOfAscendingNode,
-    argumentOfPerigee,
-    inlinationAngle);
+                                                argumentOfPerigee,
+                                                inclinationAngle);
     
     
     

@@ -3,6 +3,22 @@
 
 
 /*
+Progress macro
+*/
+#define PROGRESS(step, total) \
+    do { \
+        int width = 40; \
+        float ratio = (float)(step) / (total); \
+        int pos = ratio * width; \
+        printf("\r["); \
+        for (int i = 0; i < width; i++) \
+            printf(i < pos ? "=" : " "); \
+        printf("] %3d%%", (int)(ratio * 100)); \
+        fflush(stdout); \
+    } while(0)
+
+
+/*
 For general numerical application and stability
 */
 #define epsilon 1.0e-12
@@ -31,7 +47,7 @@ typedef struct {
 typedef struct {
     double rightAscensionOfAscendingNode;
     double argumentOfPerigee;
-    double inlinationAngle;
+    double inclinationAngle;
     double phaseAngles;
     double semiMajorAxis;
     double eccentricity;

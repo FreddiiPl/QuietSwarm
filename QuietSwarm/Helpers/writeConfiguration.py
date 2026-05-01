@@ -8,8 +8,7 @@ def writeOrbitalConfiguration(filepath):
         "periapsis": [],
         "rightAscensionOfAscendingNode": [],
         "argumentOfPerigee": [],
-        "inclinationAngle": [],
-        "phaseSeparation": []
+        "inclinationAngle": []
     }
     
     keys = headers.keys()
