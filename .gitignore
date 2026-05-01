@@ -1,7 +1,6 @@
-*.so
-*.egg-info/
-*.dat
-
-__pycache__/
-*.py[cod]
-*$py.class
+**/__pycache__/
+**/*.egg-info/
+**/*.so
+**/*.dat
+**/*.py[cod]
+**/*$py.class
