@@ -1,14 +1,16 @@
+#include <stddef.h>
+#include <stdbool.h>
 #include "propagator.h"
 
 
-void propagate (int n_steps, double h, int n_sats, OrbitalParameters orbit){
+void propagate (int n_steps, double h, int n_sats, OrbitalParameters orbit, bool debug){
     /*
     initialize Swarm
     */
-   Swarm swarm;
-   swarm.n_sats     = n_sats;
-   swarm.orbitParam = malloc(sizeof(OrbitalParameters) * swarm.n_sats);
-   swarm.state      = malloc(sizeof(State) * swarm.n_sats);
+Swarm swarm;
+swarm.n_sats     = n_sats;
+swarm.orbitParam = malloc(sizeof(OrbitalParameters) * swarm.n_sats);
+swarm.state      = malloc(sizeof(State) * swarm.n_sats);
 
     if (!swarm.orbitParam || !swarm.state) {
         free(swarm.orbitParam);
@@ -16,6 +18,24 @@ void propagate (int n_steps, double h, int n_sats, OrbitalParameters orbit){
         return;
     }
 
+    if (debug) {
+        size_t orbit_mem = sizeof(OrbitalParameters) * swarm.n_sats;
+        size_t state_mem = sizeof(State) * swarm.n_sats;
+
+        printf("Allocated orbitParam: %zu bytes (%zu each × %d)\n",
+           orbit_mem,
+           sizeof(OrbitalParameters),
+           swarm.n_sats);
+
+        
+        printf("Allocated state: %zu bytes (%zu each × %d)\n",
+           state_mem,
+           sizeof(State),
+           swarm.n_sats);
+
+        printf("Total allocated: %zu bytes\n",
+                orbit_mem + state_mem);
+    }
 
     /*
     Initialize state

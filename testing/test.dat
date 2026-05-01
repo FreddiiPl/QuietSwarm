@@ -1,0 +1,3 @@
+nr_sat,apoapsis,periapsis,rightAscensionOfAscendingNode,argumentOfPerigee,inclinationAngle,phaseSeparation
+60,800,800,0,0,40,15
+60,800,800,45,0,30,15

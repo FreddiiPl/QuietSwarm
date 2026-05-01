@@ -5,16 +5,7 @@ base_path = os.path.dirname(__file__)
 so_path = os.path.join(base_path, 'c_functions', 'propagator.so')
 lib = ctypes.CDLL(so_path)
 
-
-class objectTypes:
-    def __init__(self,):
-        self.int_type    = ctypes.c_int
-        self.double_type = ctypes.c_double
-        self.double_ptr  = ctypes.POINTER(ctypes.c_double)
-        
-        
-        # for now
-        class OrbitalParameters(ctypes.Structure):
+class OrbitalParameters(ctypes.Structure):
             _fields_ = [
                 ("rightAscensionOfAscendingNode", ctypes.c_double),
                 ("argumentOfPerigee", ctypes.c_double),
@@ -23,18 +14,24 @@ class objectTypes:
                 ("semiMajorAxis", ctypes.c_double),
                 ("eccentricity", ctypes.c_double),
             ]
+
+
+class objectTypes:
+    def __init__(self,):
+        self.int_type    = ctypes.c_int
+        self.double_type = ctypes.c_double
+        self.double_ptr  = ctypes.POINTER(ctypes.c_double)
         
         
-        self.OrbitalParameters = OrbitalParameters
-    
-    
     
     
     def propagator_c(self,):
+        orbit_param = OrbitalParameters
+        
         lib.propagate.argtypes = [
             self.int_type,
             self.double_type,
-            self.OrbitalParameters
+            orbit_param
         ]
         
         return lib
