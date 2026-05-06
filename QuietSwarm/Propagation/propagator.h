@@ -69,8 +69,6 @@ typedef struct {
 } Swarm;
 
 typedef struct {
-    int step;
-    int sat;
     double x, y, z;
 } Output;
 
@@ -94,6 +92,6 @@ void swarm_step(Swarm *swarm, double h);
 /*
 Propagator
 */
-Output *propagate(int n_steps, double h, int n_sats, OrbitalParameters *orbit);
+Output *propagate(int n_steps, double h, int n_sats, OrbitalParameters *orbit, int stride);
 
 #endif

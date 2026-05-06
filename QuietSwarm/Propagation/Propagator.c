@@ -10,17 +10,32 @@ void free_output(Output *buffer) {
 }
 
 
-Output *propagate(int n_steps, double h, int n_sats, OrbitalParameters *orbit){
+void store_in_buffer(Output *buffer, const Swarm *swarm) {
+
+
+    for (int i = 0; i < swarm->n_sats; i++) {
+            buffer[i] = (Output){
+                swarm->state[i].positions.x,
+                swarm->state[i].positions.y,
+                swarm->state[i].positions.z
+            };
+        }
+
+}
+
+
+Output *propagate(int n_steps, double h, int n_sats, OrbitalParameters *orbit, int stride){
     /*
     Initialize output
     */
-    Output *buffer = malloc(n_steps * n_sats * sizeof(Output));
+    int n_stride = (n_steps / stride);
+    Output *buffer = malloc(n_stride * n_sats * sizeof(Output));
     if (!buffer) {
     perror("malloc failed");
     exit(EXIT_FAILURE);
     }
 
-    size_t total_bytes = (size_t)n_steps * (size_t)n_sats * sizeof(Output);
+    size_t total_bytes = (size_t) n_stride * n_sats * sizeof(Output);
     double mb = total_bytes / (1024.0 * 1024.0);
     double gb = mb / 1024.0;
 
@@ -30,7 +45,6 @@ Output *propagate(int n_steps, double h, int n_sats, OrbitalParameters *orbit){
     /*
     initialize Swarm
     */
-
     Swarm swarm;
     swarm.n_sats     = n_sats;
     swarm.orbitParam = malloc(sizeof(OrbitalParameters) * swarm.n_sats);
@@ -56,29 +70,17 @@ Output *propagate(int n_steps, double h, int n_sats, OrbitalParameters *orbit){
     /*
     Integrate
     */
-
-    int idx = 0;
-    int max = n_steps * n_sats;
+   int out_idx = 0;
     for (int step = 0; step < n_steps; step++) {
         swarm_step(&swarm, h);
-        for (int i = 0; i < swarm.n_sats; i++) {
-            if (idx >= max) {
-                fprintf(stderr, "Buffer overflow\n");
-                exit(EXIT_FAILURE);
-            }
-            buffer[idx++] = (Output){
-                step,
-                i,
-                swarm.state[i].positions.x,
-                swarm.state[i].positions.y,
-                swarm.state[i].positions.z
-            };
-    }
+        if (step % stride == 0) {
+            store_in_buffer(buffer + out_idx * n_sats, &swarm);
+            out_idx++;
+        }
 
-    PROGRESS(step + 1, n_steps);
+        PROGRESS(step + 1, n_steps);
     }
     printf("\n");
-
 
 
     free(swarm.orbitParam);
