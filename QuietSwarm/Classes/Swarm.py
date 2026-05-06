@@ -55,7 +55,7 @@ class Swarm:
             
 
     
-    def propagate(self, n_steps, dt, filepath):
+    def propagate(self, n_steps, dt, stride):
         c_propagator = self.types.propagator_c()
         OrbitArrayType = self.types.orbit_param * len(self.orbitParams)
         
@@ -64,19 +64,17 @@ class Swarm:
                 for row in self.orbitParams
             ])
         
-        filepath = filepath.encode("utf-8")
-        output_ptr = c_propagator.propagate(n_steps, dt, self.nr_sats, orbit_array, filepath)
+
+        output_ptr = c_propagator.propagate(n_steps, dt, self.nr_sats, orbit_array, stride)
         
         
         # Transfer output
         dtype = np.dtype([
-                    ("step", np.int32),
-                    ("sat", np.int32),
                     ("x", np.float64),
                     ("y", np.float64),
                     ("z", np.float64),
                 ])
-        n = n_steps * self.nr_sats
+        n = stride * self.nr_sats
         output = np.ctypeslib.as_array(output_ptr, shape=(n,)).view(dtype)
     
         c_propagator.free_output(output_ptr)

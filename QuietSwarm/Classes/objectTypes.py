@@ -18,8 +18,6 @@ class OrbitalParameters(ctypes.Structure):
 
 class Output(ctypes.Structure):
     _fields_ = [
-        ("step", ctypes.c_int),
-        ("sat", ctypes.c_int),
         ("x", ctypes.c_double),
         ("y", ctypes.c_double),
         ("z", ctypes.c_double),
@@ -45,7 +43,7 @@ class objectTypes:
             self.double_type,
             self.int_type,
             ctypes.POINTER(OrbitalParameters),
-            self.char_type
+            self.int_type
         ]
         
         lib.propagate.restype = ctypes.POINTER(Output)
