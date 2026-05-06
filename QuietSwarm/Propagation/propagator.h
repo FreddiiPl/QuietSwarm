@@ -1,3 +1,5 @@
+#include <stdio.h> 
+
 #ifndef PROPAGATOR_H
 #define PROPAGATOR_H
 
@@ -66,6 +68,12 @@ typedef struct {
     State *state; // be sure to free once its use is over
 } Swarm;
 
+typedef struct {
+    int step;
+    int sat;
+    double x, y, z;
+} Output;
+
 
 /*
 Initialize
@@ -81,5 +89,11 @@ Integrator - kick-drift Verlet integration
 State verlet_kick_drift_single_sat(State current_state, double h);
 
 void swarm_step(Swarm *swarm, double h);
+
+
+/*
+Propagator
+*/
+Output *propagate(int n_steps, double h, int n_sats, OrbitalParameters *orbit);
 
 #endif

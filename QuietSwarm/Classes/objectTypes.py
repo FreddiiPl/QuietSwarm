@@ -14,6 +14,16 @@ class OrbitalParameters(ctypes.Structure):
                 ("semiMajorAxis", ctypes.c_double),
                 ("eccentricity", ctypes.c_double),
             ]
+            
+
+class Output(ctypes.Structure):
+    _fields_ = [
+        ("step", ctypes.c_int),
+        ("sat", ctypes.c_int),
+        ("x", ctypes.c_double),
+        ("y", ctypes.c_double),
+        ("z", ctypes.c_double),
+    ]
 
 
 class objectTypes:
@@ -22,6 +32,7 @@ class objectTypes:
         self.double_type = ctypes.c_double
         self.double_ptr  = ctypes.POINTER(ctypes.c_double)
         self.bool_type   = ctypes.c_bool
+        self.char_type   = ctypes.c_char_p
         
         
     
@@ -34,8 +45,11 @@ class objectTypes:
             self.double_type,
             self.int_type,
             ctypes.POINTER(OrbitalParameters),
-            self.bool_type
+            self.char_type
         ]
+        
+        lib.propagate.restype = ctypes.POINTER(Output)
+        lib.free_output.argtypes = [ctypes.POINTER(Output)]
         
         return lib
     
