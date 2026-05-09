@@ -2,8 +2,12 @@ import ctypes
 import os
 
 base_path = os.path.dirname(__file__)
+
 so_path = os.path.join(base_path,'..','Propagation', 'propagate.so')
 lib = ctypes.CDLL(so_path)
+
+so_path_projection = os.path.join(base_path,'..', 'Projections', 'refsystems.so')
+lib_projection     = ctypes.CDLL(so_path_projection)
 
 class OrbitalParameters(ctypes.Structure):
             _fields_ = [
@@ -51,3 +55,13 @@ class objectTypes:
         
         return lib
     
+    
+    def referenceSystem(self,):
+        
+        lib_projection.currentJulianDateTimeJ2000.argtypes = [
+            self.char_type
+        ]
+        
+        lib_projection.currentJulianDateTimeJ2000.restype = self.double_type
+        
+        return lib_projection

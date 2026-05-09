@@ -81,4 +81,11 @@ class Swarm:
         
         return output
         
+    
+    def eciToecef(self,UT1_time):
+        refsystem = self.types.referenceSystem()
         
+        UT1_encoded = UT1_time.encode('utf-8')
+        JD_ref = refsystem.currentJulianDateTimeJ2000(UT1_encoded)
+        
+        print(f"JD_J2000: {JD_ref} s")
