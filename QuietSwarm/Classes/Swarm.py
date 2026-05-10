@@ -85,7 +85,10 @@ class Swarm:
     def eciToecef(self,UT1_time):
         refsystem = self.types.referenceSystem()
         
-        UT1_encoded = UT1_time.encode('utf-8')
-        JD_ref = refsystem.currentJulianDateTimeJ2000(UT1_encoded)
+        UT1_encoded    = UT1_time.encode('utf-8')
+        JD_ref         = refsystem.currentJulianDateTimeJ2000(UT1_encoded)
+        JD_ref_century = JD_ref / (86400.0 * 36525.0)
         
-        print(f"JD_J2000: {JD_ref} s")
+        cip = refsystem.CIPCoordinates(JD_ref_century)
+        
+        print(f"X: {cip.X}, Y: {cip.Y}")

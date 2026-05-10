@@ -28,6 +28,13 @@ class Output(ctypes.Structure):
     ]
 
 
+class CIP(ctypes.Structure):
+    _fields_ = [
+        ("X", ctypes.c_double),
+        ("Y", ctypes.c_double)
+    ]
+
+
 class objectTypes:
     def __init__(self,):
         self.int_type    = ctypes.c_int
@@ -58,10 +65,18 @@ class objectTypes:
     
     def referenceSystem(self,):
         
+        # Input declarations
         lib_projection.currentJulianDateTimeJ2000.argtypes = [
             self.char_type
         ]
         
+        lib_projection.CIPCoordinates.argtypes = [
+            self.double_type
+        ]
+        
+        # Result declarations
         lib_projection.currentJulianDateTimeJ2000.restype = self.double_type
+        lib_projection.CIPCoordinates.restype = CIP
+        
         
         return lib_projection

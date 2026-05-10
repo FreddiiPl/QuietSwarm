@@ -46,9 +46,3 @@ double currentJulianDateTimeJ2000(const char *UT1)
     return Julian_Date_ref;
 }
 
-
-void CIOLocatorAngle();
-
-
-
-
