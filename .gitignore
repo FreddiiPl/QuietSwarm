@@ -4,3 +4,5 @@
 **/*.dat
 **/*.py[cod]
 **/*$py.class
+**/IERS
+**/Deprecated
