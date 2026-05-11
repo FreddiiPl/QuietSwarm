@@ -1,6 +1,7 @@
 import numpy as np
-
+from .Quaternion import Quaternion
 from .objectTypes import objectTypes
+from QuietSwarm.Helpers.iersRotMatrix import GCRSRotMatrix
 
 
 
@@ -82,13 +83,30 @@ class Swarm:
         return output
         
     
-    def eciToecef(self,UT1_time):
-        refsystem = self.types.referenceSystem()
+    def eciToecef(self,UT1_time, state_eci):
+        '''
+        Based on IERS conventions -> GCRS - ITRF conversion using implemented precession-nutation model (IAU2000/2006)
+        '''
         
+        refsystem      = self.types.julianDate()
         UT1_encoded    = UT1_time.encode('utf-8')
-        JD_ref         = refsystem.currentJulianDateTimeJ2000(UT1_encoded)
-        JD_ref_century = JD_ref / (86400.0 * 36525.0)
         
-        cip = refsystem.CIPCoordinates(JD_ref_century)
+        JD             = refsystem.currentJulianDateTime(UT1_encoded)
+        absolute_JD = (JD / 86400.0)
         
-        print(f"X: {cip.X}, Y: {cip.Y}")
+        RotMatrix = GCRSRotMatrix(absolute_JD)
+
+        vector_eci  = np.column_stack((state_eci['x'], state_eci['y'], state_eci['z']))
+        states_ecef = vector_eci @ RotMatrix.T
+        
+        # konvertera tillbaka till tidigare struktur
+        output_ecef = np.zeros(len(state_eci), dtype=[('x', '<f8'), ('y', '<f8'), ('z', '<f8')])
+        output_ecef['x'] = states_ecef[:, 0]
+        output_ecef['y'] = states_ecef[:, 1]
+        output_ecef['z'] = states_ecef[:, 2]
+        
+        return output_ecef
+        
+        
+        
+        
