@@ -1,7 +1,6 @@
 import numpy as np
-from .Quaternion import Quaternion
 from .objectTypes import objectTypes
-from QuietSwarm.Helpers.iersRotMatrix import GCRSRotMatrix
+from QuietSwarm.Helpers.Projections import eciToecef, ecefTolla
 
 
 
@@ -10,6 +9,7 @@ class Swarm:
     def __init__(self,orbitalFile):
         self.types = objectTypes()
         
+        # To be cleaned up!!
         with open(orbitalFile, "r") as f:
             nr_configurations = sum(1 for line in f) - 1
             self.nr_sats = 0
@@ -55,6 +55,7 @@ class Swarm:
                     sat_idx += 1
             
 
+  
     
     def propagate(self, n_steps, dt, stride):
         c_propagator = self.types.propagator_c()
@@ -94,18 +95,34 @@ class Swarm:
         JD             = refsystem.currentJulianDateTime(UT1_encoded)
         absolute_JD = (JD / 86400.0)
         
-        RotMatrix = GCRSRotMatrix(absolute_JD)
-
-        vector_eci  = np.column_stack((state_eci['x'], state_eci['y'], state_eci['z']))
-        states_ecef = vector_eci @ RotMatrix.T
+        self.states_ecef = eciToecef(absolute_JD, state_eci)
         
-        # konvertera tillbaka till tidigare struktur
-        output_ecef = np.zeros(len(state_eci), dtype=[('x', '<f8'), ('y', '<f8'), ('z', '<f8')])
-        output_ecef['x'] = states_ecef[:, 0]
-        output_ecef['y'] = states_ecef[:, 1]
-        output_ecef['z'] = states_ecef[:, 2]
+        return self.states_ecef
         
-        return output_ecef
+        
+        
+    def eciTolla(self,states, **ut1_str):
+        states_ecef = states.copy()
+        if not hasattr(self, 'states_ecef'):
+            try:
+                UT1_time = ut1_str.pop("UT1")
+            except KeyError as e:
+                print(f"missing Universal Time string! {e.message}")
+            
+            states_ecef = self.eciToecef(UT1_time, states)
+        
+        
+        states_lla = ecefTolla(states_ecef)
+        
+        return states_lla
+    
+    
+    def eciToAzEl(self,states, observer):
+        states_azel   = states.copy()
+        observer_ecef = ... 
+        
+        
+        
         
         
         
