@@ -1,5 +1,6 @@
 from urllib.parse import ParseResult, urlencode, urlunparse
-
+from pathlib import Path
+import os
 
 class Parser:
     """
@@ -61,13 +62,29 @@ class Parser:
         return urlunparse(components)
     
     
-    def _cache(self,):
-        pass
+    def _cache(self,dir=None):
+        if dir is None:
+            dir = os.environ.get("CACHE_DIR", "./cache_directory")
+            
+        
+        self.cache_dir = Path(dir).expanduser().resolve().absolute()
+        
+        
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
     
     
     def _clear_cache(self,):
-        pass
+        for file in list(self.cache_dir.iterdir()):
+            if file.is_file():
+                try:
+                    file.unlink()
+                    print(f"rm {file}")
+                except OSError as e:
+                    print(f"Could not delete {file}: {e}")
     
+    
+    def download(self,):
+        pass
         
         
             
