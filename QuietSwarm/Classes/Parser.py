@@ -2,6 +2,14 @@ from urllib.parse import ParseResult, urlencode, urlunparse
 
 
 class Parser:
+    """
+    A URL parser for handling API server endpoints and query parameters.
+
+    Inspired by the architecture of the bmi-topography project:
+    https://github.com/csdms/bmi-topography/
+    """
+    
+    
     def __init__(
         self,
         scheme      = None,
@@ -51,6 +59,15 @@ class Parser:
         )
         
         return urlunparse(components)
+    
+    
+    def _cache(self,):
+        pass
+    
+    
+    def _clear_cache(self,):
+        pass
+    
         
         
             
