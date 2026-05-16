@@ -1,6 +1,7 @@
 from urllib.parse import ParseResult, urlencode, urlunparse
 from pathlib import Path
 import os
+import requests
 
 class Parser:
     """
@@ -24,10 +25,17 @@ class Parser:
         self.base             = base
         self.name             = name
         
-        self.server           = self.base + "/" + self.name
+        self.server = None
+        if self.base is not None and self.name is not None:
+            self.server = self.base + "/" + self.name
+            
+
+        # self.url              = self._url()
+        # self.query            = getattr(self, "parameters", None)
         
         if api_key is not None:
             self.api_key = api_key
+            
         
     
     def _queryParameters(self, **kwargs):
@@ -46,7 +54,7 @@ class Parser:
         
         if not hasattr(self, "parameters") and \
                 (kwargs.get('value', 0) != 0):
-            
+
                 self.parameters = self._queryParameters(**kwargs)
         
         
@@ -83,8 +91,28 @@ class Parser:
                     print(f"Could not delete {file}: {e}")
     
     
-    def download(self,):
-        pass
+    def download(self,filename: Path):
+        
+        self._url()
+        self._cache()
+        
+        
+        if filename.is_file():
+            try:
+                response = requests.get(self.url, stream=True)
+            except requests.exceptions.RequestException as e:
+                print(f"Request failed: {e}")
+                response = None
+            
+        
+        with filename.open("wb") as f:
+            for chunk in response.iter_content(chunk_size=None):
+                f.write(chunk)
+        
+        
+        return filename.absolute()
+        
+        
         
         
             

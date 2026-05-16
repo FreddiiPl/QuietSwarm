@@ -41,12 +41,16 @@ class Swarm:
                 n_sat = int(config[0])
                 phases = np.linspace(0, 360, n_sat, endpoint=False)
                 
+                raan_rad = np.deg2rad(config[3])
+                argp_rad = np.deg2rad(config[4])
+                incl_rad = np.deg2rad(config[5])
+                phases_rad = np.deg2rad(phases)
                 for k in range(n_sat):
                     params = [
-                            config[3],  # raan
-                            config[4],  # argp
-                            config[5],  # inc
-                            phases[k],  # phase
+                            raan_rad,  # raan
+                            argp_rad,  # argp
+                            incl_rad,   # inc
+                            phases_rad[k],  # phase
                             config[1],  # sma
                             config[2],  # ecc
                         ]
