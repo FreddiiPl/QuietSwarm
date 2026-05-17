@@ -45,16 +45,16 @@ class Parser:
         web path defined through the parser object
         '''
         
-        self.parameters = kwargs
+        self.parameters = kwargs.copy()
+        
+        if self.api_key:
+            self.parameters["API_Key"] = self.api_key
         
         return self.parameters
     
     
     def _url(self,**kwargs):
-        
-        if not hasattr(self, "parameters") and \
-                (kwargs.get('value', 0) != 0):
-
+        if not hasattr(self, "parameters") and kwargs:
                 self.parameters = self._queryParameters(**kwargs)
         
         

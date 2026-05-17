@@ -1,5 +1,7 @@
 from QuietSwarm.Classes.Parser import Parser
 from pathlib import Path
+from tqdm import tqdm
+import requests
 
 
 class OpenTopography(Parser):
@@ -52,9 +54,45 @@ class OpenTopography(Parser):
             
             self.filepath = Path(self.cache_dir) / self.filename
             
+            self.url = self._url(demtype=demtype,
+                                 south=south,
+                                 north=north,
+                                 west=west,
+                                 east=east,
+                                 outputFormat=outputFormat)
+            
         
     def download(self):
-        pass
+        
+        if not self.filepath.is_file():
+            
+            try:
+                print("Fetching response...")
+                response = requests.get(self.url, stream=True)
+                response.raise_for_status()
+            except requests.exceptions.HTTPError as e:
+                print("HTTP Error:", e)
+                print("Response text:", response.text[:1000])
+
+            total_bytes = int(response.headers.get("content-length", 0))
+            # total_gb    = total_bytes / (1024 ** 3)
+            chunk_size = 1024 * 1024
+            
+            with self.filepath.open("wb") as f:
+                with tqdm(
+                          total=total_bytes,
+                          unit="B",
+                          unit_scale=True,
+                          unit_divisor=1024,
+                          desc="Downloading Elevation Data"
+                          ) as pbar:
+                                for chunk in response.iter_content(chunk_size=chunk_size):
+                                    if chunk:
+                                        f.write(chunk)
+                                        pbar.update(len(chunk))
+        
+        
+        return self.filepath.absolute()
 
   
         
