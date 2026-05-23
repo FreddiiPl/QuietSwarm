@@ -9,7 +9,7 @@ State initialize_state(OrbitalParameters orbit) {
     double argumentOfPerigee             = orbit.argumentOfPerigee;
     double inclinationAngle               = orbit.inclinationAngle;
     double phaseAngles                   = orbit.phaseAngles;
-    double semiMajorAxis                 = orbit.semiMajorAxis;
+    double semiMajorAxis                 = orbit.semiMajorAxis / 63781366;
     double eccentricity                  = orbit.eccentricity;
 
 
@@ -19,7 +19,7 @@ State initialize_state(OrbitalParameters orbit) {
     
     double e2          = eccentricity * eccentricity;
     double r0          = (semiMajorAxis * ( 1 - e2) ) / ( 1 + eccentricity * cos(phaseAngles) );
-    double v0          = sqrt(1.0 / semiMajorAxis * ( 1 - e2 ) );
+    double v0          = sqrt(1.0 / (semiMajorAxis * ( 1 - e2 )) );
     
     initialPos.x = r0 * cos(phaseAngles);
     initialPos.y = r0 * sin(phaseAngles);

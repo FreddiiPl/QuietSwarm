@@ -5,15 +5,12 @@ import rasterio
 def fetchOpenTopographyData(south,
                             north,
                             west,
-                            east,
-                            api_key):
+                            east):
     
     
     demtype      = "COP30"
     outputFormat = "GTiff"
     dataserver   = "global"
-    
-    
     
     topography = OpenTopography(demtype,
                                 south,
@@ -21,8 +18,7 @@ def fetchOpenTopographyData(south,
                                 west,
                                 east,
                                 outputFormat,
-                                dataserver,
-                                api_key)
+                                dataserver)
     
     
     if topography.filepath.is_file():
@@ -34,18 +30,17 @@ def fetchOpenTopographyData(south,
     
     
 
-def fetchObserverLocation(observer: tuple, diff: float, api_key):
+def fetchObserverLocation(observer: tuple, diff: float):
     longitude, latitude = observer
     
     north = latitude + diff
     south = latitude - diff
-    west = longitude - diff
-    east = longitude + diff
+    west  = longitude - diff
+    east  = longitude + diff
     
     
     filepath = fetchOpenTopographyData(south, north,
-                                        west, east,
-                                        api_key)
+                                        west, east)
     
     
     with rasterio.open(filepath) as src:

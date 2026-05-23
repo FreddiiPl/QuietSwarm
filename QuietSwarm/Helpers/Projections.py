@@ -70,10 +70,11 @@ def ecefTolla(states_ecef):
     
     
     longitude = np.arctan2(states_ecef["y"], states_ecef["x"])
-    latitude  = np.arctan2(states_ecef["z"] + EARTH_ECCENTRICITY2**2 * EARTH_SEMI_MINOR_AXIS * np.sin(theta)**3,
-                         p - EARTH_ECCENTRICITY**2 * EARTH_SEMI_MAJOR_AXIS * np.cos(theta)**3)
     
-    radius_of_curvature = EARTH_SEMI_MAJOR_AXIS / np.sqrt(1 - EARTH_ECCENTRICITY**2 * np.sin(latitude))
+    latitude  = np.arctan2(states_ecef["z"] + EARTH_ECCENTRICITY_SQ2 * EARTH_SEMI_MINOR_AXIS * np.sin(theta)**3,
+                         p - EARTH_ECCENTRICITY_SQ * EARTH_SEMI_MAJOR_AXIS * np.cos(theta)**3)
+    
+    radius_of_curvature = EARTH_SEMI_MAJOR_AXIS / np.sqrt(1 - EARTH_ECCENTRICITY_SQ * np.sin(latitude)**2)
     
     altitude  = p / np.cos(latitude) - radius_of_curvature
     
@@ -87,5 +88,26 @@ def ecefTolla(states_ecef):
     return states_lla
 
 
-def ecefToAzEl():
+def llaToEcef(latitude, longitude, altitude):
+    '''
+    No clue if this work in a general sense - who cares for now
+    '''
+ 
+    radius_of_curvature = EARTH_SEMI_MAJOR_AXIS / np.sqrt(1 - EARTH_ECCENTRICITY_SQ * np.sin(latitude)**2)
+    
+    
+    x = (radius_of_curvature + altitude) * np.cos(latitude) * np.cos(longitude)
+    y = (radius_of_curvature + altitude) * np.cos(latitude) * np.sin(longitude)
+    z = ((1 - EARTH_ECCENTRICITY_SQ)*radius_of_curvature + altitude) * np.sin(latitude)
+    
+    states_ecef = np.array((x, y, z),
+                           dtype=np.dtype([('x', '<f8'), ('y', '<f8'), ('z', '<f8')])
+                           )
+    
+    return states_ecef
+    
+
+    
+def ecefToAzEl(observer):
     ...
+

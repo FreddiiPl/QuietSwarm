@@ -1,7 +1,14 @@
 from QuietSwarm.Classes.Parser import Parser
 from pathlib import Path
 from tqdm import tqdm
+from dotenv import load_dotenv
 import requests
+import os
+
+script_dir = Path(__file__).resolve().parent
+credentials_path = script_dir / "../credentials.env"
+
+load_dotenv(credentials_path)
 
 
 class OpenTopography(Parser):
@@ -22,20 +29,21 @@ class OpenTopography(Parser):
                 east=None,
                 outputFormat=None,
                 dataserver=None,
-                api_key=None,
                 ):
+        
         
         self.scheme = self.SCHEME
         self.netlocation = self.NETLOCATION
         self.base = self.BASE
         self.name = self.NAME[dataserver]
  
+        self.api_key = os.getenv("OpenTopography_API_Key")
         super().__init__(
                     scheme=self.SCHEME,
                     netlocation=self.NETLOCATION,
                     base=self.BASE,
                     name=self.name,
-                    api_key=api_key,
+                    api_key=self.api_key,
                     )
         
         

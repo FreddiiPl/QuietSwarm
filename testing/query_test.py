@@ -22,12 +22,9 @@ def main():
     
 
     observer     = (18.172604, 59.405896)
-    diff         = 0.2
-    api_key      = os.getenv("OpenTopography_API_Key")
+    diff         = 0.1
 
-    
-    data, observer = fetchObserverLocation(observer, diff,
-                                     api_key)
+    data, observer = fetchObserverLocation(observer, diff)
     
     fig, ax = plt.subplots(figsize=(12,8))
     ax.imshow(data[0], extent=data[1], cmap="terrain")

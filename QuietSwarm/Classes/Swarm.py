@@ -1,6 +1,6 @@
 import numpy as np
 from .objectTypes import objectTypes
-from QuietSwarm.Helpers.Projections import eciToecef, ecefTolla
+from QuietSwarm.Helpers.Projections import eciToecef, ecefTolla, llaToEcef
 
 
 
@@ -22,12 +22,12 @@ class Swarm:
                 
                 values = [float(x) for x in row.strip().split(",")]
                 n_sat     = values[0]
-                apoapsis  = values[1]
-                periapsis = values[2]
+                apoapsis  = values[1] * 1e3
+                periapsis = values[2] * 1e3
                 
                 semiMajorAxis = (apoapsis + periapsis) / 2
                 eccentricity  = (apoapsis - periapsis) / (apoapsis + periapsis)
-                
+  
                 values[1] = semiMajorAxis
                 values[2] = eccentricity
                 
@@ -121,9 +121,47 @@ class Swarm:
         return states_lla
     
     
-    def eciToAzEl(self,states, observer):
-        states_azel   = states.copy()
-        observer_ecef = ... 
+    def ecefToAzEl(self,states, observer: tuple):
+ 
+        latitude_rad   = np.deg2rad(observer[1])
+        longitude_rad  = np.deg2rad(observer[0])
+        altitude_m     = observer[2]
+        
+        observer_ecef  = llaToEcef(latitude_rad, longitude_rad, altitude_m)
+        
+    
+        diffx = states['x'] - observer_ecef['x']
+        diffy = states['y'] - observer_ecef['y']
+        diffz = states['z'] - observer_ecef['z']
+        
+        # observer local horizon plane
+        e     = np.cos(longitude_rad) * diffy - np.sin(longitude_rad) * diffx
+        
+        n     = - np.sin(latitude_rad) * np.cos(longitude_rad) * diffx \
+                - np.sin(latitude_rad) * np.sin(longitude_rad) * diffy \
+                + np.cos(latitude_rad) * diffz
+        
+        u     = np.cos(latitude_rad) * np.cos(longitude_rad) * diffx \
+                + np.cos(latitude_rad) * np.sin(longitude_rad) * diffy \
+                + np.sin(latitude_rad) * diffz
+        
+        
+        az    = np.rad2deg(np.arctan2(e, n))
+        el    = np.rad2deg(np.arcsin(u / np.sqrt(e**2 + n**2 + u**2)))
+        
+        azel_dtype = np.dtype([('az', '<f8'), ('el', '<f8')])
+        result = np.zeros(az.shape, dtype=azel_dtype)
+        
+        result['az'] = az
+        result['el'] = el
+        
+        return result
+
+        
+        
+        
+        
+        
         
         
         
