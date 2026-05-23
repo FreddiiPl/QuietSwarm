@@ -4,6 +4,7 @@ from QuietSwarm.Helpers.fetchElevationdata import fetchObserverLocation
 
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import numpy as np
 
 import os
 from dotenv import load_dotenv
@@ -42,12 +43,14 @@ def plotECEFstates(fig, states_ecef, energy):
     ax3.grid(False)
     ax3.set_box_aspect([1, 1, 1])
     
-    max_range = 3000 
+    max_range = np.max(np.abs(np.concatenate((states_ecef['x'], states_ecef['y'], states_ecef['z'])))) / 1e3
+    max_range *= 1.05
 
     ax3.set_xlim([-max_range, max_range])
     ax3.set_ylim([-max_range, max_range])
     ax3.set_zlim([-max_range, max_range])
     
+    ax3.view_init(elev=30, azim=45)
     
     plt.colorbar(sc)
 
@@ -55,7 +58,7 @@ def plotECEFstates(fig, states_ecef, energy):
 @darkkWrapper
 def main():
     dt          = 0.01
-    tmax        = 2000
+    tmax        = 1000
     n_steps     = int(tmax // dt)
     stride      = 1
     
@@ -78,9 +81,9 @@ def main():
     
 
     fig = plt.figure(figsize=(12,8))
-    plotECEFstates(fig, output, output["H"])
+    plotECEFstates(fig, states_ecef, output["H"])
     plt.tight_layout()
-    plt.show()
+    plt.savefig("propagation_output.png", dpi=300)
     
     
 if __name__ == "__main__":
