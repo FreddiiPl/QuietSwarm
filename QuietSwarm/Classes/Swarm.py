@@ -8,7 +8,7 @@ from QuietSwarm.Helpers.Projections import eciToecef, ecefTolla, llaToEcef
 class Swarm:
     def __init__(self,orbitalFile):
         self.types = objectTypes()
-        
+
         # To be cleaned up!!
         with open(orbitalFile, "r") as f:
             nr_configurations = sum(1 for line in f) - 1
@@ -22,8 +22,9 @@ class Swarm:
                 
                 values = [float(x) for x in row.strip().split(",")]
                 n_sat     = values[0]
-                apoapsis  = values[1] * 1e3
-                periapsis = values[2] * 1e3
+                apoapsis  = values[1]
+                periapsis = values[2]
+                
                 
                 semiMajorAxis = (apoapsis + periapsis) / 2
                 eccentricity  = (apoapsis - periapsis) / (apoapsis + periapsis)
@@ -51,7 +52,7 @@ class Swarm:
                             argp_rad,  # argp
                             incl_rad,   # inc
                             phases_rad[k],  # phase
-                            config[1],  # sma
+                            config[1] * 1e3,  # sma
                             config[2],  # ecc
                         ]
                     
@@ -79,11 +80,30 @@ class Swarm:
                     ("x", np.float64),
                     ("y", np.float64),
                     ("z", np.float64),
+                    ("T", np.float64),
+                    ("V", np.float64),
+                    ("H", np.float64),
                 ])
-        n = stride * self.nr_sats
-        output = np.ctypeslib.as_array(output_ptr, shape=(n,)).view(dtype)
+        n_stride = n_steps // stride
+        n = n_stride * self.nr_sats
+        
+        output = np.ctypeslib.as_array(output_ptr, shape=(n,)).view(dtype).copy()
     
+        
+        
+        sma = np.array([sat.semiMajorAxis for sat in orbit_array])
+        sma_mapped = np.tile(sma, n_stride) 
+        
+        output['x'] *= sma_mapped
+        output['y'] *= sma_mapped
+        output['z'] *= sma_mapped
+        
         c_propagator.free_output(output_ptr)
+        
+        print("\n--- PYTHON SIDE DEBUG ---")
+        print("Första punkten i Python:", output[0])
+        print("Sista punkten i Python: ", output[-1])
+        print("-------------------------\n")
         
         return output
         

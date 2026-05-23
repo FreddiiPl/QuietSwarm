@@ -1,4 +1,3 @@
-#include <math.h>
 #include "propagator.h"
 #include "utils.h"
 
@@ -32,18 +31,20 @@ double compute_acceleration(double val, double z,
                             double r2, int j
                             ) {
                                 
-    double oblateness_term_normalized = 1.5 * J2;
+    double j2_term = 1.5 * J2;
     
     double r_mag3  = 1.0 / (r2 * sqrt(r2));
     double r_mag5 = 1.0 / (r2 * r2 * sqrt(r2));
-    double acceleration;
+
+    double z_factor     = 5.0 * (z * z) / r2;
+    double acceleration = -val * r_mag3;
 
     if (j == 2) {
 
-        acceleration = - val * r_mag3 + oblateness_term_normalized * r_mag5 * val * (5 * z*z / r2 - 3);
+        acceleration += j2_term * r_mag5 * val * (z_factor - 3.0);
     }
     else {
-        acceleration = - val * r_mag3 + oblateness_term_normalized * r_mag5 * val * (5 * z*z / r2 - 1);
+        acceleration += j2_term * r_mag5 * val * (z_factor - 1.0);
     }
     
     return acceleration;
@@ -53,3 +54,5 @@ double compute_acceleration(double val, double z,
 double compute_velocity(double val, double acceleration, double h2) {
     return val + h2 * acceleration;
 }
+
+

@@ -20,7 +20,39 @@ mpl.rcParams['font.weight'] = "bold"
 mpl.rcParams['axes.labelweight'] = "bold"
 mpl.rcParams['font.size'] = 12
 
+def darkkWrapper(f):
+    def wrapper(*args, **kwargs):
+        plt.style.use('dark_background')
+        return f(*args, **kwargs)
+    return wrapper
 
+
+def plotECEFstates(fig, states_ecef, energy):
+    ax3  = fig.add_subplot(111,projection="3d")
+    sc = ax3.scatter(states_ecef['x'] / 1e3, states_ecef['y']  / 1e3 , states_ecef['z']  / 1e3 , c=energy, cmap="Spectral_r")
+    ax3.set_title("ECEF")
+    ax3.set_xlabel("x (km)")
+    ax3.set_ylabel("y (km)")
+    ax3.set_zlabel("z (km)")
+    
+    ax3.xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    ax3.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    ax3.zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    
+    ax3.grid(False)
+    ax3.set_box_aspect([1, 1, 1])
+    
+    max_range = 3000 
+
+    ax3.set_xlim([-max_range, max_range])
+    ax3.set_ylim([-max_range, max_range])
+    ax3.set_zlim([-max_range, max_range])
+    
+    
+    plt.colorbar(sc)
+
+
+@darkkWrapper
 def main():
     dt          = 0.01
     tmax        = 2000
@@ -44,36 +76,10 @@ def main():
     states_azel = swarm.ecefToAzEl(states_ecef, observer)
     states_lla  = swarm.eciTolla(states_ecef)
     
-    # correct result?
+
     fig = plt.figure(figsize=(12,8))
-    
-    ax0 = fig.add_subplot(141)
-    ax0.scatter(states_azel['az'], states_azel['el'])
-    ax0.set_ylim(-90, 90)
-    ax0.set_xlabel("Azimuth (deg)")
-    ax0.set_ylabel("Elevation (deg)")
-    
-    ax1 = fig.add_subplot(142)
-    ax1.scatter(states_lla["longitude"], states_lla["latitude"])
-    ax1.set_xlabel("Longitude (deg)")
-    ax1.set_ylabel("Latitude (deg)")
-    
-    ax2  = fig.add_subplot(143,projection="3d")
-    ax2.scatter(output['x'], output['y'], output['z'])
-    ax2.set_title("ECI")
-    ax2.set_xlabel("x")
-    ax2.set_ylabel("y")
-    ax2.set_zlabel("z")
-    
-    ax3  = fig.add_subplot(144,projection="3d")
-    ax3.scatter(states_ecef['x'], states_ecef['y'] , states_ecef['z'])
-    ax3.set_title("ECEF")
-    ax3.set_xlabel("x")
-    ax3.set_ylabel("y")
-    ax3.set_zlabel("z")
-    
-    
-    
+    plotECEFstates(fig, output, output["H"])
+    plt.tight_layout()
     plt.show()
     
     

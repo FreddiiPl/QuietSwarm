@@ -25,6 +25,9 @@ class Output(ctypes.Structure):
         ("x", ctypes.c_double),
         ("y", ctypes.c_double),
         ("z", ctypes.c_double),
+        ("T", ctypes.c_double),
+        ("V", ctypes.c_double),  
+        ("H", ctypes.c_double),
     ]
 
 

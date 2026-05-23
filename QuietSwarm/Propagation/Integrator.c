@@ -1,5 +1,4 @@
 
-#include <math.h>
 #include <stdio.h>
 #include "propagator.h"
 #include "utils.h"
@@ -25,9 +24,9 @@ State verlet_kick_drift_single_sat(State current_state, double h) {
     halfVelocity.y = compute_velocity(currentVel.y, currentAcc.y, h2);
     halfVelocity.z = compute_velocity(currentVel.z, currentAcc.z, h2);
 
-    nextPos.x = h * halfVelocity.x;
-    nextPos.y = h * halfVelocity.y;
-    nextPos.z = h * halfVelocity.z;
+    nextPos.x = currentPos.x + h * halfVelocity.x;
+    nextPos.y = currentPos.x + h * halfVelocity.y;
+    nextPos.z = currentPos.x + h * halfVelocity.z;
 
     double r_squared_next = nextPos.x * nextPos.x + nextPos.y * nextPos.y + nextPos.z * nextPos.z;
 

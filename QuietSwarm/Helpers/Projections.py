@@ -39,7 +39,6 @@ def GCRSRotMatrix(absolute_JD):
     return RotMatrix
 
 
-
 def eciToecef(absolute_JD, state_eci):
     '''
     Based on IERS conventions -> GCRS - ITRF conversion using implemented precession-nutation model (IAU2000/2006)
@@ -47,9 +46,9 @@ def eciToecef(absolute_JD, state_eci):
     
     RotMatrix = GCRSRotMatrix(absolute_JD)
 
-    vector_eci  = np.column_stack((state_eci['x'] * EARTH_SEMI_MAJOR_AXIS, 
-                                   state_eci['y'] * EARTH_SEMI_MAJOR_AXIS, 
-                                   state_eci['z'] * EARTH_SEMI_MAJOR_AXIS))
+    vector_eci  = np.column_stack((state_eci['x'], 
+                                   state_eci['y'], 
+                                   state_eci['z']))
     
     states_ecef = vector_eci @ RotMatrix.T
     

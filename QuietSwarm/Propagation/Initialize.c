@@ -1,4 +1,4 @@
-#include <math.h>
+
 #include "propagator.h"
 #include "utils.h"
 
@@ -9,30 +9,20 @@ State initialize_state(OrbitalParameters orbit) {
     double argumentOfPerigee             = orbit.argumentOfPerigee;
     double inclinationAngle               = orbit.inclinationAngle;
     double phaseAngles                   = orbit.phaseAngles;
-    double semiMajorAxis                 = orbit.semiMajorAxis / 63781366;
+    double semiMajorAxis                 = orbit.semiMajorAxis / a_normalizer;
     double eccentricity                  = orbit.eccentricity;
 
 
-    Vector3 initialPos;
-    Vector3 initialVel;
-    Vector3 initialAcc;
+    // Vector3 initialPos;
+    // Vector3 initialVel;
     
     double e2          = eccentricity * eccentricity;
     double r0          = (semiMajorAxis * ( 1 - e2) ) / ( 1 + eccentricity * cos(phaseAngles) );
     double v0          = sqrt(1.0 / (semiMajorAxis * ( 1 - e2 )) );
     
-    initialPos.x = r0 * cos(phaseAngles);
-    initialPos.y = r0 * sin(phaseAngles);
-    initialPos.z = 0;
-    
-    initialVel.x = -v0 * sin(phaseAngles);
-    initialVel.y = v0 * (eccentricity  + cos(orbit.phaseAngles));
-    initialVel.z = 0;
-    
-    double r0_squared = initialPos.x * initialPos.x + initialPos.y * initialPos.y + initialPos.z * initialPos.z;
-    initialAcc.x = compute_acceleration(initialPos.x, initialPos.z, r0_squared, 0);
-    initialAcc.y = compute_acceleration(initialPos.y, initialPos.z, r0_squared, 1);
-    initialAcc.z = compute_acceleration(initialPos.z, initialPos.z, r0_squared, 2);
+    Vector3 initialPos = { r0 * cos(phaseAngles), r0 * sin(phaseAngles), 0.0 };
+    Vector3 initialVel = { -v0 * sin(phaseAngles), v0 * (eccentricity + cos(phaseAngles)), 0.0 };
+    // Vector3 initialAcc;
     
     /* 
     Transform position and velocity to Earth-Centered Inertial (ECI) coordinates
@@ -52,9 +42,14 @@ State initialize_state(OrbitalParameters orbit) {
     state.velocities.y = R.RotMatrix[1][0] * initialVel.x + R.RotMatrix[1][1] * initialVel.y + R.RotMatrix[1][2] * initialVel.z;
     state.velocities.z = R.RotMatrix[2][0] * initialVel.x + R.RotMatrix[2][1] * initialVel.y + R.RotMatrix[2][2] * initialVel.z;
 
-    state.accelerations.x = R.RotMatrix[0][0] * initialAcc.x + R.RotMatrix[0][1] * initialAcc.y + R.RotMatrix[0][2] * initialAcc.z;
-    state.accelerations.y = R.RotMatrix[1][0] * initialAcc.x + R.RotMatrix[1][1] * initialAcc.y + R.RotMatrix[1][2] * initialAcc.z;
-    state.accelerations.z = R.RotMatrix[2][0] * initialAcc.x + R.RotMatrix[2][1] * initialAcc.y + R.RotMatrix[2][2] * initialAcc.z;
+    double r0_squared = state.positions.x * state.positions.x + 
+                        state.positions.y * state.positions.y + 
+                        state.positions.z * state.positions.z;
+
+    state.accelerations.x = compute_acceleration(state.positions.x, state.positions.z, r0_squared, 0);
+    state.accelerations.y = compute_acceleration(state.positions.y, state.positions.z, r0_squared, 1);
+    state.accelerations.z = compute_acceleration(state.positions.z, state.positions.z, r0_squared, 2);
+
 
 
     return state;
