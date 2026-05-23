@@ -25,8 +25,8 @@ State verlet_kick_drift_single_sat(State current_state, double h) {
     halfVelocity.z = compute_velocity(currentVel.z, currentAcc.z, h2);
 
     nextPos.x = currentPos.x + h * halfVelocity.x;
-    nextPos.y = currentPos.x + h * halfVelocity.y;
-    nextPos.z = currentPos.x + h * halfVelocity.z;
+    nextPos.y = currentPos.y + h * halfVelocity.y;
+    nextPos.z = currentPos.z + h * halfVelocity.z;
 
     double r_squared_next = nextPos.x * nextPos.x + nextPos.y * nextPos.y + nextPos.z * nextPos.z;
 

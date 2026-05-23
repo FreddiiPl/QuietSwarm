@@ -34,7 +34,7 @@ https://iers-conventions.obspm.fr/conventions_material.php
 */
 #define mu 1.0
 #define a 1.0
-#define a_normalizer 63781366
+#define a_normalizer 6378136.6
 #define J2 0.0010826359
 
 #define sigma_mu 2.0070223615090836e-9

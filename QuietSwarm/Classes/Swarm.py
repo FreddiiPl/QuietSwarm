@@ -1,6 +1,7 @@
 import numpy as np
 from .objectTypes import objectTypes
 from QuietSwarm.Helpers.Projections import eciToecef, ecefTolla, llaToEcef
+from QuietSwarm.Helpers.wgs84 import EARTH_SEMI_MAJOR_AXIS
 
 
 
@@ -25,8 +26,8 @@ class Swarm:
                 apoapsis  = values[1]
                 periapsis = values[2]
                 
-                
                 semiMajorAxis = (apoapsis + periapsis) / 2
+                semiMajorAxis += EARTH_SEMI_MAJOR_AXIS / 1e3
                 eccentricity  = (apoapsis - periapsis) / (apoapsis + periapsis)
   
                 values[1] = semiMajorAxis
@@ -84,20 +85,16 @@ class Swarm:
                     ("V", np.float64),
                     ("H", np.float64),
                 ])
-        n_stride = n_steps // stride
+        n_stride = (n_steps + stride - 1) // stride
         n = n_stride * self.nr_sats
         
         output = np.ctypeslib.as_array(output_ptr, shape=(n,)).view(dtype).copy()
-    
-        
-        
-        sma = np.array([sat.semiMajorAxis for sat in orbit_array])
-        sma_mapped = np.tile(sma, n_stride) 
-        
-        output['x'] *= sma_mapped
-        output['y'] *= sma_mapped
-        output['z'] *= sma_mapped
-        
+
+        a_normalizer = EARTH_SEMI_MAJOR_AXIS
+        output['x'] *= a_normalizer
+        output['y'] *= a_normalizer
+        output['z'] *= a_normalizer
+
         c_propagator.free_output(output_ptr)
         
         print("\n--- PYTHON SIDE DEBUG ---")

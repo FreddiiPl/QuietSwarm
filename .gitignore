@@ -7,4 +7,5 @@
 **/IERS
 **/Deprecated
 **/*.env
+**/*.tif
 **/*.tiff

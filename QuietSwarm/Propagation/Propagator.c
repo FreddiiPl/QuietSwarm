@@ -44,7 +44,7 @@ Output *propagate(int n_steps, double h, int n_sats, OrbitalParameters *orbit, i
     /*
     Initialize output
     */
-    int n_stride = (n_steps) / stride + 1;
+    int n_stride = (n_steps + stride - 1) / stride;
     Output *buffer = malloc((size_t)n_stride * n_sats * sizeof(Output));
     if (!buffer) {
     perror("malloc failed");
@@ -93,7 +93,7 @@ Output *propagate(int n_steps, double h, int n_sats, OrbitalParameters *orbit, i
     
     int sista_idx = (n_stride * n_sats) - 1;
     printf("Sista punkten i C (index %d) -> x: %e, y: %e, z: %e, H: %e\n", 
-           1, buffer[1].x, buffer[1].y, buffer[1].z, buffer[1].H);
+           sista_idx, buffer[sista_idx].x, buffer[sista_idx].y, buffer[sista_idx].z, buffer[sista_idx].H);
     printf("--------------------\n");
 
     free(swarm.orbitParam);
