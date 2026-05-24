@@ -1,66 +1,63 @@
 from QuietSwarm.Classes.Swarm import Swarm
 from QuietSwarm.Helpers.fetchElevationdata import fetchObserverLocation
 
-
-import matplotlib.pyplot as plt
-import matplotlib as mpl
 import numpy as np
-
+import sys
 import os
-from dotenv import load_dotenv
-
-# Default figure settings
-mpl.rcParams['axes.linewidth'] = 1.2
-mpl.rcParams['xtick.direction'] = "in"
-mpl.rcParams['xtick.top'] = True
-mpl.rcParams['ytick.direction'] = "in"
-mpl.rcParams['ytick.right'] = True
-mpl.rcParams['xtick.minor.visible'] = True
-mpl.rcParams['ytick.minor.visible'] = True
-mpl.rcParams['font.weight'] = "bold"
-mpl.rcParams['axes.labelweight'] = "bold"
-mpl.rcParams['font.size'] = 12
-
-def darkkWrapper(f):
-    def wrapper(*args, **kwargs):
-        plt.style.use('dark_background')
-        return f(*args, **kwargs)
-    return wrapper
 
 
-def plotECEFstates(fig, states_ecef, energy):
-    ax3  = fig.add_subplot(111,projection="3d")
-    sc = ax3.scatter(states_ecef['x'] / 1e3, states_ecef['y']  / 1e3 , states_ecef['z']  / 1e3 , c=energy, cmap="Spectral_r")
-    ax3.set_title("ECEF")
-    ax3.set_xlabel("x (km)")
-    ax3.set_ylabel("y (km)")
-    ax3.set_zlabel("z (km)")
+sys.path.append("../QuietSwarm/Orbit_GPU_CPP/build")
+import orbit_plotter 
+
+
+def plotStates_OpenGL(output, energy, nr_sats):
     
-    ax3.xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-    ax3.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-    ax3.zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    current_file_path = os.path.abspath(__file__) # Sökväg till test_propagation.py
+    testing_dir = os.path.dirname(current_file_path) # mappen 'testing'
+    project_root = os.path.dirname(testing_dir)
     
-    ax3.grid(False)
-    ax3.set_box_aspect([1, 1, 1])
+    vert_shader_path = os.path.join(project_root, "QuietSwarm/Orbit_GPU_CPP", "shader.vert")
+    frag_shader_path = os.path.join(project_root, "QuietSwarm/Orbit_GPU_CPP", "shader.frag")
     
-    max_range = np.max(np.abs(np.concatenate((states_ecef['x'], states_ecef['y'], states_ecef['z'])))) / 1e3
-    max_range *= 1.05
+    total_punkter = len(output)
+    n_stride = total_punkter // nr_sats
+    
+    indices = np.arange(total_punkter).reshape((n_stride, nr_sats)).flatten(order='F')
+    
+    sorted_output = output[indices]
+    sorted_energy = energy[indices]
+    
+    x_flat = sorted_output['x'].tolist()
+    y_flat = sorted_output['y'].tolist()
+    z_flat = sorted_output['z'].tolist()
+    h_flat = sorted_energy.tolist()
+    
+    # Normalize Energy tracking array array context boundary limits to a transparent 0.0 - 1.0 scope
+    e_min, e_max = min(h_flat), max(h_flat)
+    if e_max > e_min:
+        normalized_energy = [(e - e_min) / (e_max - e_min) for e in h_flat]
+    else:
+        normalized_energy = [0.5] * len(h_flat)
 
-    ax3.set_xlim([-max_range, max_range])
-    ax3.set_ylim([-max_range, max_range])
-    ax3.set_zlim([-max_range, max_range])
+    print("Transferring data arrays over to active GPU instances...")
     
-    ax3.view_init(elev=30, azim=45)
     
-    plt.colorbar(sc)
+    orbit_plotter.plot_ecef(
+        x_flat, 
+        y_flat, 
+        z_flat, 
+        normalized_energy,
+        vert_shader_path,
+        frag_shader_path 
+    )
 
 
-@darkkWrapper
 def main():
     dt          = 0.01
     tmax        = 1000
-    n_steps     = int(tmax // dt)
-    stride      = 1
+    
+    # n_steps     = int(tmax // dt)
+    # stride      = int((1.0 / tau) // dt)
     
     UT1 = "2026-05-10 16:05:00"
     orbitalfile = "test.dat"
@@ -73,17 +70,17 @@ def main():
     _, observer = fetchObserverLocation(observer, diff)
     
     
-    swarm = Swarm(orbitalfile)
-    output      = swarm.propagate(n_steps=n_steps, dt=dt,stride=stride)
+    swarm       = Swarm(orbitalfile)
+    output      = swarm.propagate(tmax=tmax, dt=dt)
+    
+    
     states_ecef = swarm.eciToecef(UT1, output)
     states_azel = swarm.ecefToAzEl(states_ecef, observer)
     states_lla  = swarm.eciTolla(states_ecef)
     
-
-    fig = plt.figure(figsize=(12,8))
-    plotECEFstates(fig, states_ecef, output["H"])
-    plt.tight_layout()
-    plt.savefig("propagation_output.png", dpi=300)
+    plotStates_OpenGL(output, output["H"], swarm.nr_sats)
+    
+    
     
     
 if __name__ == "__main__":

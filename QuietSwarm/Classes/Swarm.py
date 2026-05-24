@@ -1,7 +1,7 @@
 import numpy as np
 from .objectTypes import objectTypes
 from QuietSwarm.Helpers.Projections import eciToecef, ecefTolla, llaToEcef
-from QuietSwarm.Helpers.wgs84 import EARTH_SEMI_MAJOR_AXIS
+from QuietSwarm.Helpers.wgs84 import EARTH_SEMI_MAJOR_AXIS, EARTH_MU
 
 
 
@@ -63,7 +63,7 @@ class Swarm:
 
   
     
-    def propagate(self, n_steps, dt, stride):
+    def propagate(self, tmax, dt):
         c_propagator = self.types.propagator_c()
         OrbitArrayType = self.types.orbit_param * len(self.orbitParams)
         
@@ -72,8 +72,16 @@ class Swarm:
                 for row in self.orbitParams
             ])
         
-
-        output_ptr = c_propagator.propagate(n_steps, dt, self.nr_sats, orbit_array, stride)
+        tau        = np.sqrt(EARTH_SEMI_MAJOR_AXIS**3 / EARTH_MU)
+        h_norm     = dt / tau
+        tmax_norm  = tmax / tau
+        n_steps    = int(tmax_norm // h_norm)
+        
+        stride     = int(1.0 // dt) 
+        if stride < 1: stride = 1
+        
+        
+        output_ptr = c_propagator.propagate(n_steps, h_norm, self.nr_sats, orbit_array, stride)
         
         
         # Transfer output

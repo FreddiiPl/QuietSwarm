@@ -41,9 +41,8 @@ void InitializeState(Swarm *swarm, OrbitalParameters *orbit) {
 
 
 Output *propagate(int n_steps, double h, int n_sats, OrbitalParameters *orbit, int stride){
-    /*
-    Initialize output
-    */
+
+    
     int n_stride = (n_steps + stride - 1) / stride;
     Output *buffer = malloc((size_t)n_stride * n_sats * sizeof(Output));
     if (!buffer) {
@@ -87,14 +86,6 @@ Output *propagate(int n_steps, double h, int n_sats, OrbitalParameters *orbit, i
     }
     printf("\n");
 
-    printf("\n--- C SIDE DEBUG ---\n");
-    printf("Första punkten i C -> x: %e, y: %e, z: %e, H: %e\n", 
-           buffer[0].x, buffer[0].y, buffer[0].z, buffer[0].H);
-    
-    int sista_idx = (n_stride * n_sats) - 1;
-    printf("Sista punkten i C (index %d) -> x: %e, y: %e, z: %e, H: %e\n", 
-           sista_idx, buffer[sista_idx].x, buffer[sista_idx].y, buffer[sista_idx].z, buffer[sista_idx].H);
-    printf("--------------------\n");
 
     free(swarm.orbitParam);
     free(swarm.state);
