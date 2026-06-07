@@ -19,6 +19,70 @@ struct GPUParticle {
     float x, y, z, energy;
 };
 
+
+class Sphere
+{
+    protected:
+        std::vector<GLfloat> vertices;
+        std::vector<GLfloat> normals;
+        std::vector<GLfloat> texcoords;
+        std::vector<GLushort> indices;
+    
+    public:
+        Sphere(float radius, unsigned int rings, unsigned int sectors) {
+            float const R = 1.0f / (float)(rings - 1);
+            float const S = 1.0f / (float)(sectors - 1);
+            int r, s;
+
+            vertices.resize(rings * sectors * 3);
+            normals.resize(rings * sectors * 3);
+            texcoords.resize(rings * sectors * 2);
+
+            std::vector<GLfloat>::iterator v = vertices.begin();
+            std::vector<GLfloat>::iterator n = normals.begin();
+            std::vector<GLfloat>::iterator t = texcoords.begin();
+
+            for (r = 0; r < rings; r++) for(s = 0; s < sectors; s++) {
+                float const y = sin( -M_PI_2 + M_PI * r * R );
+                float const x = cos(2.0f * M_PI * s * S) * sin(M_PI * r * R);
+                float const z = sin(2.0f * M_PI * s * S) * sin(M_PI * r * R);
+
+                texcoords.push_back(s * S);
+                texcoords.push_back(r * R);
+
+                vertices.push_back(x * radius);
+                vertices.push_back(y * radius);
+                vertices.push_back(z * radius);
+
+                normals.push_back(x);
+                normals.push_back(y);
+                normals.push_back(z);
+            }
+
+            indices.resize(rings * sectors * 4);
+            std::vector<GLushort>::iterator i = indices.begin();
+            for (r = 0; r < rings; r++) for(s = 0; s < sectors; s++) {
+
+                unsigned int k1 = r * sectors + s;
+                unsigned int k2 = k1 + sectors;
+
+                indices.push_back(k1);
+                indices.push_back(k2);
+                indices.push_back(k1 + 1);
+
+                indices.push_back(k1 + 1);
+                indices.push_back(k2);
+                indices.push_back(k2 + 1);
+            }
+        }
+
+        const std::vector<GLfloat>& getVertices() const { return vertices; }
+        const std::vector<GLfloat>& getNormals() const { return normals; }
+        const std::vector<GLfloat>& getTexCoords() const { return texcoords; }
+        const std::vector<GLushort>& getIndices() const { return indices; }
+};
+
+
 // Globala variabler för enkel kamerastyrning
 float camYaw = 0.78f;  // Startvinkel (45 grader)
 float camPitch = 0.5f; // Startlutning
@@ -28,10 +92,13 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     if (action == GLFW_PRESS || action == GLFW_REPEAT) {
         if (key == GLFW_KEY_LEFT || key == GLFW_KEY_A)  camYaw -= 0.1f;
         if (key == GLFW_KEY_RIGHT || key == GLFW_KEY_D) camYaw += 0.1f;
-        if (key == GLFW_KEY_UP || key == GLFW_KEY_W)    camRadius -= 1.0f; // Zooma in
-        if (key == GLFW_KEY_DOWN || key == GLFW_KEY_S)  camRadius += 1.0f; // Zooma ut
-        if (key == GLFW_KEY_R) camPitch += 0.05f;
-        if (key == GLFW_KEY_F) camPitch -= 0.05f;
+        if (key == GLFW_KEY_UP || key == GLFW_KEY_W)    camPitch += 0.05f; // Zooma in
+        if (key == GLFW_KEY_DOWN || key == GLFW_KEY_S)  camPitch -= 0.05f; // Zooma ut
+        if (key == GLFW_KEY_R) camYaw -= 0.1f;
+        if (key == GLFW_KEY_F) camYaw += 0.1f;
+
+        if (camPitch > 1.5f)  camPitch = 1.5f;   // Ca 85 grader i radianer
+        if (camPitch < -1.5f) camPitch = -1.5f;
     }
 }
 
@@ -158,6 +225,30 @@ std::pair<unsigned int, unsigned int> initializeVertexObjects(const std::vector<
     return std::make_pair(VAO, VBO);
 }
 
+std::tuple<unsigned int, unsigned int, unsigned int> initializeSphereObject(const Sphere& sphere) {
+    unsigned int VAO, VBO, EBO;
+
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
+
+    glBindVertexArray(VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sphere.getVertices().size() * sizeof(GLfloat), sphere.getVertices().data(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sphere.getIndices().size() * sizeof(GLushort), sphere.getIndices().data(), GL_STATIC_DRAW);
+
+    glBindVertexArray(0);
+
+    return {VAO, VBO, EBO};
+
+}
+
 
 void launch_opengl_plotter(const std::vector<float>& x, 
                            const std::vector<float>& y, 
@@ -170,9 +261,10 @@ void launch_opengl_plotter(const std::vector<float>& x,
     float height = 800;
     GLFWwindow* window   = initializeWindow(width, height);
 
+    glEnable(GL_DEPTH_TEST); 
+
     std::string vertCode = readShaderFile(vertPath);
     std::string fragCode = readShaderFile(fragPath);
-
     const char* vertSource = vertCode.c_str();
     const char* fragSource = fragCode.c_str();
     unsigned int program = initializeShaders(vertSource, fragSource);
@@ -180,6 +272,9 @@ void launch_opengl_plotter(const std::vector<float>& x,
     auto [particles, metrics] = correctScaling(x, y, z, energy);
 
     auto [VAO, VBO] = initializeVertexObjects(particles);
+
+    Sphere sphere(1.0f, 32, 32);
+    auto [sphereVAO, sphereVBO, sphereEBO] = initializeSphereObject(sphere);
     
 
     float centerX   = metrics[0];
@@ -225,20 +320,31 @@ void launch_opengl_plotter(const std::vector<float>& x,
 
         glUniformMatrix4fv(glGetUniformLocation(program, "projection"), 1, GL_FALSE, projMatrix);
         glUniformMatrix4fv(glGetUniformLocation(program, "view"), 1, GL_FALSE, viewMatrix);
+        
 
         glBindVertexArray(VAO);
         glDrawArrays(GL_POINTS, 0, static_cast<GLsizei>(particles.size()));
 
-        glfwSwapBuffers(window); glfwPollEvents();
+        
+        glBindVertexArray(sphereVAO);
+
+        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(sphere.getIndices().size()), GL_UNSIGNED_SHORT, 0);
+
+
+        glfwSwapBuffers(window); 
+        glfwPollEvents();
     }
 
     glDeleteVertexArrays(1, &VAO); 
-    glDeleteBuffers(1, &VBO); 
+    glDeleteBuffers(1, &VBO);
+    glDeleteVertexArrays(1, &sphereVAO); 
+    glDeleteBuffers(1, &sphereVBO); 
+    glDeleteBuffers(1, &sphereEBO); 
     glDeleteProgram(program);
     glfwDestroyWindow(window); 
     glfwTerminate();
 }
 
 PYBIND11_MODULE(orbit_plotter, m) {
-    m.def("plot_ecef", &launch_opengl_plotter, "A function that displays ECEF points inside native OpenGL pipelines.");
+    m.def("plot_ecef", &launch_opengl_plotter, "A function that displays points inside native OpenGL pipelines.");
 }
