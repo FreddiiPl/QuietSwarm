@@ -10,4 +10,5 @@
 **/*.tif
 **/*.tiff
 **/*.png
+**/Orbit_GPU_CPP/
 **/build/

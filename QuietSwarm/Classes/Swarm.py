@@ -3,7 +3,20 @@ from .objectTypes import objectTypes
 from QuietSwarm.Helpers.Projections import eciToecef, ecefTolla, llaToEcef
 from QuietSwarm.Helpers.wgs84 import EARTH_SEMI_MAJOR_AXIS, EARTH_MU
 
+import matplotlib.pyplot as plt
+import matplotlib as mpl
 
+# Default figure settings
+mpl.rcParams['axes.linewidth'] = 1.2
+mpl.rcParams['xtick.direction'] = "in"
+mpl.rcParams['xtick.top'] = True
+mpl.rcParams['ytick.direction'] = "in"
+mpl.rcParams['ytick.right'] = True
+mpl.rcParams['xtick.minor.visible'] = True
+mpl.rcParams['ytick.minor.visible'] = True
+mpl.rcParams['font.weight'] = "bold"
+mpl.rcParams['axes.labelweight'] = "bold"
+mpl.rcParams['font.size'] = 12
 
 
 class Swarm:
@@ -181,6 +194,13 @@ class Swarm:
         result['el'] = el
         
         return result
+
+    def obstruction(self, states, observer: tuple, elevation_map: np.ndarray):
+        # calculate path of satellite through elevation map and determine if it is obstructed
+        # almost ray tracing.
+        
+        
+        pass
 
         
         
