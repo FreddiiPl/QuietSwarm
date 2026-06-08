@@ -23,6 +23,7 @@ class Pattern:
                  res,
                  wl,
                  a,
+                 above_l
                  ):
         self.res  = res
         
@@ -30,7 +31,7 @@ class Pattern:
         self.theta      = np.arccos(x)
         self.phi        = np.linspace(0, 2 * np.pi, self.res)
         
-        self.l     = np.arange(2 * np.pi * a / wl, dtype = int)
+        self.l     = np.arange(2 * np.pi * a / wl + above_l + 1, dtype = int)
         self.l_max = self.l[-1]
         self.m          = np.arange(-self.l_max, self.l_max + 1)
         
@@ -105,9 +106,9 @@ class Pattern:
     
     def _get_phi_dependency(self, TH, PH, idealPattern, **patternKwargs):
         d_phi      = np.max(self.phi) / self.res
-        pattern_ideal = idealPattern(TH, PH, **patternKwargs)
+        self.pattern_ideal = idealPattern(TH, PH, **patternKwargs)
         
-        F_theta = np.fft.fft(pattern_ideal, axis=1) * d_phi
+        F_theta = np.fft.fft(self.pattern_ideal, axis=1) * d_phi
         freqs   = np.fft.fftfreq(self.res, d=1/self.res).astype(int)
         m_mapping = {f: idx for idx, f in enumerate(freqs) if -self.l_max <= f <= self.l_max}     
         
@@ -146,24 +147,37 @@ class Pattern:
             sph_harm_valid = sph_harm[valid, :]
 
             
-            theta_part = w_valid[:, None] * sph_harm_valid
-            phi_part = np.exp(1j * m_valid[:, None] * self.phi[None, :])
+            # theta_part = w_valid[:, None] * sph_harm_valid
+            # phi_part = np.exp(1j * m_valid[:, None] * self.phi[None, :])
+            
+            theta_part = (w_valid[:, None] * sph_harm_valid)[:, :, None]
+            phi_part = np.exp(1j * m_valid[:, None] * self.phi[None, :])[:, None, :]
             
             
             self.total_pattern += np.sum(theta_part * phi_part, axis=0)
 
         
-        return (TH, PH, self.total_pattern.T)
+        return (TH, PH, self.total_pattern)
     
     
     
-    def plot_polar(self, TH, PH, pattern, title="Pattern", **kwargs):
-        fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
-        ax.set_title(title, fontweight="bold")
+    def plot_polar(self, TH, PH, pattern, title="Polar_Pattern", **kwargs):
+        fig     = plt.figure(figsize=(24, 8))
+        fig, (ax, ax1, ax2) = plt.subplots(1, 3, figsize=(24, 8), subplot_kw={'projection': 'polar'})
         
+        # fig.suptitle(title, fontweight="bold")
         
-        sc = ax.contourf(PH, np.rad2deg(TH), pattern.real, **kwargs)
-        fig.colorbar(sc,ax=ax, label="Normalized Gain")
+
+        sc  = ax.contourf(PH, np.rad2deg(TH), pattern, **kwargs)
+        ax.set_title("Generated", fontweight="bold")
+        sc1 = ax1.contourf(PH, np.rad2deg(TH), self.pattern_ideal, **kwargs)
+        ax1.set_title("Ideal", fontweight="bold")
+        sc2 = ax2.contourf(PH, np.rad2deg(TH), pattern - self.pattern_ideal, **kwargs)
+        ax2.set_title("Residual", fontweight="bold")
+        
+        fig.colorbar(sc,ax=ax, label="Gain (dBi)")
+        fig.colorbar(sc1,ax=ax1, label="Gain (dBi)")
+        fig.colorbar(sc2,ax=ax2, label="Gain (dBi)")
         plt.tight_layout()
         plt.savefig(f"{title.replace(' ', '_').lower()}.png", dpi=300)
         
