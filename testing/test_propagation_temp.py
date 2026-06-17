@@ -6,8 +6,6 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
 
-import os
-from dotenv import load_dotenv
 
 # Default figure settings
 mpl.rcParams['axes.linewidth'] = 1.2
@@ -31,7 +29,7 @@ def darkkWrapper(f):
 def plotECEFstates(fig, states_ecef, energy):
     ax3  = fig.add_subplot(111,projection="3d")
     sc = ax3.scatter(states_ecef['x'] / 1e3, states_ecef['y']  / 1e3 , states_ecef['z']  / 1e3 , c=energy, cmap="Spectral_r")
-    ax3.set_title("ECEF")
+    # ax3.set_title("ECEF")
     ax3.set_xlabel("x (km)")
     ax3.set_ylabel("y (km)")
     ax3.set_zlabel("z (km)")
@@ -52,7 +50,7 @@ def plotECEFstates(fig, states_ecef, energy):
     
     ax3.view_init(elev=30, azim=45)
     
-    plt.colorbar(sc)
+    fig.colorbar(sc, ax=ax3, label="Hamiltonian energy (normalized)")
 
 
 @darkkWrapper

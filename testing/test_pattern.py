@@ -46,13 +46,6 @@ def physicalCircularAperture(theta, phi, wl, a):
     
     return plot_radius
 
-def idealGaussian(theta, phi, k, wl, a):
-    theta_3dB = k * (wl / a)
-    gaussian = np.exp(-0.5 * (theta**2) / theta_3dB**2)
-    
-    pattern_dB = 20 * np.log10(np.maximum(gaussian, 1e-2))
-    pattern_dB = pattern_dB - np.max(pattern_dB)
-    return pattern_dB + 40
 
 
 def idealDipole(theta, phi):
@@ -67,10 +60,16 @@ def idealDipole(theta, phi):
     return pattern
 
 
+def idealGaussian(theta, phi, k, wl, a):
+    theta_3dB = k * (wl / a)
+    gaussian = np.exp(-0.5 * (theta**2) / theta_3dB**2)
+    return gaussian
+
+
 def main():
     res   = 500
-    a     = 0.03 # m
-    nu    = 50e9 # Hz
+    a     = 0.3 # m
+    nu    = 13.25e9 # Hz
     c     = 2.998e8 # m/s
     wl    = c / nu # m
     above_l = 10
@@ -87,9 +86,6 @@ def main():
     print(f"Med above_l={above_l} (l_max={rad.l_max}) är det totala rekonstruktionsfelet: {error_percentage:.2f}%")
     
     rad.plot_polar(theta, phi, pattern.real, cmap='viridis', levels=50)
-    # rad.plot_polar(theta, phi, rad.pattern_ideal, title="Ideal Polar Pattern", cmap='viridis', levels=50)
-    # rad.plot_polar(theta, phi, np.abs(pattern.real - rad.pattern_ideal), title="Residual Polar Pattern", cmap='viridis', levels=50)
-    # rad.plot_cartesian(theta, phi, pattern, title="Cartesian Pattern", shading='auto', cmap='viridis')
     rad.plot_3d(theta, phi, pattern, title="3D Pattern", cmap='viridis')
     
 

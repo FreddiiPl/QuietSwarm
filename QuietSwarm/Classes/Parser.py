@@ -28,10 +28,7 @@ class Parser:
         self.server = None
         if self.base is not None and self.name is not None:
             self.server = self.base + "/" + self.name
-            
-
-        # self.url              = self._url()
-        # self.query            = getattr(self, "parameters", None)
+ 
         
         if api_key is not None:
             self.api_key = api_key
@@ -47,7 +44,7 @@ class Parser:
         
         self.parameters = kwargs.copy()
         
-        if self.api_key:
+        if hasattr(self, "api_key"):
             self.parameters["API_Key"] = self.api_key
         
         return self.parameters

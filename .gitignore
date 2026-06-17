@@ -12,3 +12,4 @@
 **/*.png
 **/Orbit_GPU_CPP/
 **/build/
+**/*.ipynb

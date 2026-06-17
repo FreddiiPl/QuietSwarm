@@ -1,7 +1,9 @@
 from QuietSwarm.Classes.Parser import Parser
+from urllib.parse import ParseResult, urlencode, urlunparse
 from pathlib import Path
 from tqdm import tqdm
 from dotenv import load_dotenv
+import numpy as np
 import requests
 import os
 
@@ -31,6 +33,9 @@ class OpenTopography(Parser):
                 dataserver=None,
                 ):
         
+        self.demtype = demtype
+        self.outputFormat = outputFormat
+        self.dataserver = dataserver
         
         self.scheme = self.SCHEME
         self.netlocation = self.NETLOCATION
@@ -77,10 +82,17 @@ class OpenTopography(Parser):
             try:
                 print("Fetching response...")
                 response = requests.get(self.url, stream=True)
+                
+                content_type = response.headers.get("Content-Type", "")
+                
+                if "application/xml" in content_type or "text/xml" in content_type:
+                    raise RuntimeError(response.text)
+                
                 response.raise_for_status()
-            except requests.exceptions.HTTPError as e:
-                print("HTTP Error:", e)
-                print("Response text:", response.text[:1000])
+                
+            except (requests.exceptions.HTTPError, RuntimeError) as e:
+                print("API Error:", e)
+                raise
 
             total_bytes = int(response.headers.get("content-length", 0))
             # total_gb    = total_bytes / (1024 ** 3)
@@ -101,7 +113,163 @@ class OpenTopography(Parser):
         
         
         return self.filepath.absolute()
+    
+    
+    def download_recursive(self, south, north, west, east, depth=0, max_depth=6):
+        south = np.round(south, 3)
+        north = np.round(north, 3)
+        west = np.round(west, 3)
+        east = np.round(east, 3)
+        
+        topo = OpenTopography(
+                demtype=self.demtype,
+                south=south,
+                north=north,
+                west=west,
+                east=east,
+                outputFormat=self.outputFormat,
+                dataserver=self.dataserver
+            )
+        
+        if topo.filepath.is_file():
+            return [topo.filepath]
 
+        try:
+            filepath = topo.download()
+            return [filepath]
+        
+        except Exception as e:
+            msg = str(e)
+            
+            if "maximum area" not in msg.lower():
+                raise
+
+            if depth >= max_depth:
+                print("Max recursion depth reached, skipping",
+                        south, north, west, east)
+                return []
+            
+            print(f"Splitting tile at depth {depth}")
+            
+            
+            mid_lat = (south + north) / 2
+            mid_lon = (west + east) / 2
+
+            tiles = [
+                (south, mid_lat, west, mid_lon),
+                (south, mid_lat, mid_lon, east),
+                (mid_lat, north, west, mid_lon),
+                (mid_lat, north, mid_lon, east),
+            ]
+
+
+            results = []
+            for s, n, w, e in tiles:
+                results.extend(self.download_recursive(s, n, w, e, depth+1, max_depth))
+            
+            print("Finished!")
+            return results
+
+        else:
+            raise
+            
+            
+    def _url(self,**kwargs):
+        if not hasattr(self, "parameters") and kwargs:
+                self.parameters = self._queryParameters(**kwargs)
+        
+        
+        components = ParseResult(
+            scheme=self.scheme,
+            netloc=self.netlocation,
+            path=self.server,
+            params="",
+            query=urlencode(self.parameters),
+            fragment=""
+        )
+        
+        return urlunparse(components)
   
+    
+  
+  
+class Lantmateriet(Parser):
+        
+    SCHEME        = "https"
+    NETLOCATION   = "api.lantmateriet.se"
+    DATASERVER    = "stac-hojd/v1"
+    
+    
+    def __init__(self,
+                 south=None,
+                 north=None,
+                 west=None,
+                 east=None,
+                 collection="hojddata2"):
+        
+        self.scheme = self.SCHEME
+        self.netlocation = self.NETLOCATION
+        self.base = self.DATASERVER
+        
+        super().__init__(
+                    scheme=self.SCHEME,
+                    netlocation=self.NETLOCATION,
+                    base=self.DATASERVER,
+                    )
         
         
+        self.south = south
+        self.north = north
+        self.west = west
+        self.east = east
+        self.collection = collection
+        
+        self._cache()
+    
+    
+    def search(self):
+        body = self._search_body()
+        url = self._url("search")
+        return requests.post(url, json=body).json()
+    
+    
+    def assets(self):
+        result = self.search()
+        for feature in result["features"]:
+            yield feature["assets"]["data"]["href"]
+    
+    
+    def download_all(self):
+        for href in self.assets():
+            filename = href.split("/")[-1]
+            filepath = Path(self.cache_dir) / filename
+
+            if not filepath.exists():
+                r = requests.get(href, stream=True)
+                with open(filepath, "wb") as f:
+                    for chunk in r.iter_content(1024 * 1024):
+                        f.write(chunk)
+
+            yield filepath
+    
+    
+    def _url(self, *parts):
+        path = "/".join([self.base] + list(parts))
+        components = ParseResult(
+            scheme=self.scheme,
+            netloc=self.netlocation,
+            path=path,
+            params="",
+            query="",
+            fragment=""
+        )
+        return urlunparse(components)
+        
+        
+    def _search_body(self):
+        return {
+            "bbox": [self.west, self.south, self.east, self.north],
+            "collections": [self.collection],
+            "limit": 100
+        }  
+            

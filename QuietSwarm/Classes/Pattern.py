@@ -119,7 +119,13 @@ class Pattern:
             
         return F_theta_mapped
     
-        
+    
+    def window_l(self, l):
+        # Example: smooth roll-off (Tukey / Gaussian)
+        l0 = 0.8 * self.l_max
+        sigma = 0.1 * self.l_max
+        return np.exp(-((l - l0)**2) / (2 * sigma**2))
+    
     
     def pattern(self, idealPattern, **patternKwargs):
         TH, PH        = self._get_mesh()
@@ -136,6 +142,9 @@ class Pattern:
                 
             integrand = self.F_theta[m_col_idx, :] * sph_harm
             weights = np.sum(self.weights[None, :] * integrand, axis=1)
+            
+            # weights *= self.window_l(l)
+            
             self.mode_weights[l_idx, m_col_idx] = weights
 
             valid = np.abs(weights) > 1e-6
@@ -161,11 +170,11 @@ class Pattern:
     
     
     
-    def plot_polar(self, TH, PH, pattern, title="Polar_Pattern", **kwargs):
+    def plot_polar(self, TH, PH, pattern, show=False, title="Polar_Pattern", **kwargs):
         fig     = plt.figure(figsize=(24, 8))
         fig, (ax, ax1, ax2) = plt.subplots(1, 3, figsize=(24, 8), subplot_kw={'projection': 'polar'})
         
-        # fig.suptitle(title, fontweight="bold")
+        fig.suptitle(title, fontweight="bold")
         
 
         sc  = ax.contourf(PH, np.rad2deg(TH), pattern, **kwargs)
@@ -180,6 +189,7 @@ class Pattern:
         fig.colorbar(sc2,ax=ax2, label="Gain (dBi)")
         plt.tight_layout()
         plt.savefig(f"{title.replace(' ', '_').lower()}.png", dpi=300)
+
         
         
     def plot_cartesian(self, TH, PH, pattern, title="Pattern", **kwargs):
@@ -202,7 +212,7 @@ class Pattern:
         
         sc = ax.plot_surface(x, y, z, **kwargs)
         ax.set_aspect('equal', adjustable='box') 
-        fig.colorbar(sc, ax=ax, label="Normalized Gain")
+        fig.colorbar(sc, ax=ax, label="Gain (dBi)")
         plt.tight_layout()
         plt.savefig(f"{title.replace(' ', '_').lower()}.png", dpi=300)
         

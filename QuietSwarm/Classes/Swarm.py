@@ -167,31 +167,37 @@ class Swarm:
         
         observer_ecef  = llaToEcef(latitude_rad, longitude_rad, altitude_m)
         
-    
+
         diffx = states['x'] - observer_ecef['x']
         diffy = states['y'] - observer_ecef['y']
         diffz = states['z'] - observer_ecef['z']
+        dist  = np.sqrt(diffx**2 + diffy**2 + diffz**2)
+        
+        diffx_unit = diffx / dist
+        diffy_unit = diffy / dist
+        diffz_unit = diffz / dist
         
         # observer local horizon plane
-        e     = np.cos(longitude_rad) * diffy - np.sin(longitude_rad) * diffx
+        e     = -np.cos(longitude_rad) * diffy_unit + np.sin(longitude_rad) * diffx_unit
         
-        n     = - np.sin(latitude_rad) * np.cos(longitude_rad) * diffx \
-                - np.sin(latitude_rad) * np.sin(longitude_rad) * diffy \
-                + np.cos(latitude_rad) * diffz
+        n     = - np.sin(latitude_rad) * np.cos(longitude_rad) * diffx_unit \
+                - np.sin(latitude_rad) * np.sin(longitude_rad) * diffy_unit \
+                + np.cos(latitude_rad) * diffz_unit
         
-        u     = np.cos(latitude_rad) * np.cos(longitude_rad) * diffx \
-                + np.cos(latitude_rad) * np.sin(longitude_rad) * diffy \
-                + np.sin(latitude_rad) * diffz
+        u     = np.cos(latitude_rad) * np.cos(longitude_rad) * diffx_unit \
+                + np.cos(latitude_rad) * np.sin(longitude_rad) * diffy_unit \
+                + np.sin(latitude_rad) * diffz_unit
         
         
         az    = np.rad2deg(np.arctan2(e, n))
         el    = np.rad2deg(np.arcsin(u / np.sqrt(e**2 + n**2 + u**2)))
         
-        azel_dtype = np.dtype([('az', '<f8'), ('el', '<f8')])
+        azel_dtype = np.dtype([('az', '<f8'), ('el', '<f8'), ('distance', '<f8')])
         result = np.zeros(az.shape, dtype=azel_dtype)
         
-        result['az'] = az
-        result['el'] = el
+        result['az']       = az
+        result['el']       = el
+        result['distance'] = dist
         
         return result
 
