@@ -20,6 +20,18 @@ mpl.rcParams['font.size'] = 12
 
 
 class Swarm:
+    '''
+    Main swarm class. Handles the state variables of swarm given a set of
+    initial orbital properties:
+    
+    - right ascension of ascending node
+    - argument of periapsis/perigee
+    - inclination angle
+    - phase in orbital plane
+    - semi-major axis
+    - eccentricity
+    '''
+    
     def __init__(self,orbitalFile):
         self.types = objectTypes()
 
