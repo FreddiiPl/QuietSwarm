@@ -16,4 +16,4 @@
 **/*.gpkg
 **/testing/
 **/*.hdf5
-**/files/
+**/files/:
