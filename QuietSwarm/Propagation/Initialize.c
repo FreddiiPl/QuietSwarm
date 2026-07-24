@@ -7,7 +7,7 @@ State initialize_state(OrbitalParameters orbit) {
     
     double rightAscensionOfAscendingNode = orbit.rightAscensionOfAscendingNode;
     double argumentOfPerigee             = orbit.argumentOfPerigee;
-    double inclinationAngle               = orbit.inclinationAngle;
+    double inclinationAngle              = orbit.inclinationAngle;
     double phaseAngles                   = orbit.phaseAngles;
     double semiMajorAxis                 = orbit.semiMajorAxis / a_normalizer;
     double eccentricity                  = orbit.eccentricity;

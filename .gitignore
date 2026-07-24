@@ -13,3 +13,7 @@
 **/Orbit_GPU_CPP/
 **/build/
 **/*.ipynb
+**/*.gpkg
+**/testing/
+**/*.hdf5
+**/files/

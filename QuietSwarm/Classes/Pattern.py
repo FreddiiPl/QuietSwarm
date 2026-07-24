@@ -46,11 +46,11 @@ class Pattern:
         THETA, PHI = np.meshgrid(self.theta, self.phi, indexing='ij')
         
         return THETA, PHI
-
     
     def _precompute_legendre(self, x):
         """Precomputes regularized associated Legendre polynomials using standard recurrence."""
         P = np.zeros((self.l_max + 1, self.l_max + 1, self.res))
+        
         
         # P_00
         P[0, 0] = 1.0 / np.sqrt(4 * np.pi)

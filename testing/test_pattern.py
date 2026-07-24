@@ -68,8 +68,8 @@ def idealGaussian(theta, phi, k, wl, a):
 
 def main():
     res   = 500
-    a     = 0.3 # m
-    nu    = 13.25e9 # Hz
+    a     = 1.6 # m
+    nu    = 83e9 # Hz
     c     = 2.998e8 # m/s
     wl    = c / nu # m
     above_l = 10
