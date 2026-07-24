@@ -3,12 +3,9 @@ from .objectTypes import objectTypes
 from QuietSwarm.Helpers.Projections import eciToecef, ecefTolla, llaToEcef
 from QuietSwarm.Helpers.wgs84 import EARTH_SEMI_MAJOR_AXIS, EARTH_MU
 
-<<<<<<< HEAD
+
 from datetime import datetime
 
-
-=======
->>>>>>> 1ec359c59651acc90f3ca9360575135d0e50bc50
 class Swarm:
     '''
     Params -> orbital parameters as input argument.
