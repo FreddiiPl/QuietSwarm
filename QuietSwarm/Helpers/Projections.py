@@ -1,58 +1,50 @@
-from QuietSwarm.Classes.Quaternion import Quaternion
 from .wgs84        import *
-from astropy.time  import Time
+from astropy.utils import iers
 
 import erfa
 import numpy as np
 
 
-def GCRSRotMatrix(absolute_JD):
-    '''
-    GCRS - ITRF rotation matrix based on IERS convention
-    '''
-    
-    t_universal_time    = Time(absolute_JD, format="jd", scale="ut1")
-    t_terrestrial_time  = Time(absolute_JD, format="jd", scale="tt")
-    
-    era     = t_universal_time.earth_rotation_angle(longitude=0).radian
-    
-    X, Y    = erfa.xy06(t_terrestrial_time.jd1, t_terrestrial_time.jd2)
-    s       = erfa.s06(t_terrestrial_time.jd1, t_terrestrial_time.jd2, X, Y)
-    s_prime = erfa.sp00(t_terrestrial_time.jd1, t_terrestrial_time.jd2)
-    
-    a       = (1/2) + (1/8) * (X**2 + Y**2)
-    
-    quaternion = Quaternion
-    w1 = quaternion.fromAxisAngle(1,0,0, Y).RotMat3x3()
-    w2 = quaternion.fromAxisAngle(0,1,0, X).RotMat3x3()
-    w3 = quaternion.fromAxisAngle(0,0,1, -s_prime).RotMat3x3()
-    q  = quaternion.fromAxisAngle(0,0,1,s).RotMat3x3()
-    
-    R  = quaternion.fromAxisAngle(0,0,1, era).RotMat3x3()
-    W  = w3 @ w2 @ w1
-    Q  = np.array([[1 - a * X**2, -a * X * Y, X],
-                    [-a * X * Y, 1 - a * Y**2, Y],
-                    [-X, -Y, 1 - a * (X**2 + Y**2)]]) @ q
-    
-    RotMatrix = Q @ R @ W
-    
-    return RotMatrix
+
+def GCRSRotMatrix(utc):
+    ut1 = utc.ut1
+    tt = utc.tt
+
+    table = iers.earth_orientation_table.get()
+    xp, yp = table.pm_xy(ut1)
+
+    R_erfa = erfa.c2t06a(
+        ut1.jd1,
+        ut1.jd2,
+        tt.jd1,
+        tt.jd2,
+        xp.to_value("rad"),
+        yp.to_value("rad")
+    )
 
 
-def eciToecef(absolute_JD, state_eci):
+    return R_erfa
+    
+
+
+def eciToecef(utc, state_eci):
     '''
     Based on IERS conventions -> GCRS - ITRF conversion using implemented precession-nutation model (IAU2000/2006)
     '''
-    
-    RotMatrix = GCRSRotMatrix(absolute_JD)
 
+    RotMatrix     = GCRSRotMatrix(utc)
+    
     vector_eci  = np.column_stack((state_eci['x'], 
                                    state_eci['y'], 
                                    state_eci['z']))
     
-    states_ecef = vector_eci @ RotMatrix.T
     
-    # konvertera tillbaka till tidigare struktur
+    states_ecef = np.einsum("nij,nj->ni",
+                            RotMatrix,
+                            vector_eci
+                            )
+    
+    
     output_ecef = np.zeros(len(state_eci), dtype=[('x', '<f8'), ('y', '<f8'), ('z', '<f8')])
     output_ecef['x'] = states_ecef[:, 0]
     output_ecef['y'] = states_ecef[:, 1]
@@ -104,9 +96,5 @@ def llaToEcef(latitude, longitude, altitude):
                            )
     
     return states_ecef
-    
 
-    
-def ecefToAzEl(observer):
-    ...
 

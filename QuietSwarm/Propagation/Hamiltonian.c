@@ -1,29 +1,22 @@
 #include "propagator.h"
 
-void HamiltonianEnergy(Swarm *swarm) {
-    
-    
-    KineticEnergy T;
-    PotentialEnergy V;
-    
-    double posx, posy, posz, r, r2;
-    double velx, vely, velz;
-    for (int sat=0; sat < swarm->n_sats; sat++) { 
-        posx = swarm->state[sat].positions.x;
-        posy = swarm->state[sat].positions.y;
-        posz = swarm->state[sat].positions.z;
-        r = sqrt(posx*posx + posy*posy + posz * posz);
-        r2 = r * r;
+Hamiltonian compute_energy(const State *state)
+{
+    Hamiltonian H;
+    double posx = state->positions.x;
+    double posy = state->positions.y;
+    double posz = state->positions.z;
 
-        velx = swarm->state[sat].velocities.x;
-        vely = swarm->state[sat].velocities.y;
-        velz = swarm->state[sat].velocities.z;
+    double velx = state->velocities.x;
+    double vely = state->velocities.y;
+    double velz = state->velocities.z;
 
-        T.val = 0.5 * (velx*velx + vely*vely + velz*velz);
-        V.val = (1.0 / (2.0 * r)) * ( 2 - J2 / r2 * (3 * posz * posz / r2 - 1) );  
+    double r  = sqrt(posx*posx + posy*posy + posz*posz);
+    double r2 = r*r;
 
-        swarm->energy[sat].T = T;
-        swarm->energy[sat].V = V;
-        swarm->energy[sat].total = T.val + V.val;
-    }
+    H.T.val = 0.5 * (velx*velx + vely*vely + velz*velz);
+    H.V.val = -(1.0 / (2.0 * r)) * ( 2.0 + J2 / r2 * (1.0 - 3.0 * posz * posz / r2) );
+    H.total = H.T.val + H.V.val;
+    
+    return H;
 }

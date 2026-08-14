@@ -1,15 +1,47 @@
 import numpy as np
-from .objectTypes import objectTypes
+import ctypes
+import os
 from QuietSwarm.Helpers.Projections import eciToecef, ecefTolla, llaToEcef
 from QuietSwarm.Helpers.wgs84 import EARTH_SEMI_MAJOR_AXIS, EARTH_MU
 
-
+from astropy.time import Time, TimeDelta
 from datetime import datetime
+
+
+base_path = os.path.dirname(__file__)
+so_path = os.path.join(base_path,'..','Propagation', 'propagate.so')
+lib = ctypes.CDLL(so_path)
+
+
+class OrbitalParameters(ctypes.Structure):
+            _fields_ = [
+                ('sat_id', ctypes.c_double),
+                ("rightAscensionOfAscendingNode", ctypes.c_double),
+                ("argumentOfPerigee", ctypes.c_double),
+                ("inclinationAngle", ctypes.c_double),
+                ("phaseAngles", ctypes.c_double),
+                ("semiMajorAxis", ctypes.c_double),
+                ("eccentricity", ctypes.c_double),
+            ]
+
+
+class Output(ctypes.Structure):
+    _fields_ = [
+        ("sat_id", ctypes.c_double),
+        ("x", ctypes.c_double),
+        ("y", ctypes.c_double),
+        ("z", ctypes.c_double),
+        ("T", ctypes.c_double),
+        ("V", ctypes.c_double),  
+        ("H", ctypes.c_double),
+    ]
+
 
 class Swarm:
     '''
     Params -> orbital parameters as input argument.
-        Should contain 6 arrays - each of size nr_sats:
+        Should contain 7 arrays - each of size nr_sats:
+            - sat_id
             - raan
             - argp
             - incl_rad
@@ -19,19 +51,41 @@ class Swarm:
     '''
     
     def __init__(self,
-                 params):
-        self.types = objectTypes()
+                 params=None):
+        self.orbit_param = OrbitalParameters
         
-        self.nr_sats     = params.shape[1]
-        self.orbitParams = params
+        self.propagator_argtypes = [
+            ctypes.c_int,
+            ctypes.c_double,
+            ctypes.c_int,
+            ctypes.POINTER(OrbitalParameters),
+            ctypes.c_int,
+            ctypes.c_int
+        ]
+        
+        self.lib = lib
+        self.lib.propagate.argtypes = self.propagator_argtypes
+        self.lib.propagate.restype = ctypes.POINTER(Output)
+        self.lib.free_output.argtypes = [ctypes.POINTER(Output)]
+        
+        if params is not None:
+            self.nr_sats     = params.shape[0]
+            self.orbitParams = params
+        
    
 
-    def propagate(self, tmax, dt, utc=np.datetime64(datetime.now(), "ms")):
-        c_propagator = self.types.propagator_c()
-        OrbitArrayType = self.types.orbit_param * len(self.orbitParams)
+    def propagate(self, tmax, dt, nr_threads=1, utc=np.datetime64(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "ms")):
+        
+        utc = Time(utc, scale="utc")
+        ut1 = utc.ut1
+        
+        # c_propagator = self.types.propagator_c()
+        
+        
+        OrbitArrayType = self.orbit_param * len(self.orbitParams)
         
         orbit_array = OrbitArrayType(*[
-                self.types.orbit_param(*row)
+                self.orbit_param(*row)
                 for row in self.orbitParams
             ])
         
@@ -43,10 +97,13 @@ class Swarm:
         stride     = int(1.0 // dt) 
         if stride < 1: stride = 1
         
-        output_ptr = c_propagator.propagate(n_steps, h_norm, self.nr_sats, orbit_array, stride)
+        output_ptr = self.lib.propagate(n_steps, h_norm, self.nr_sats, orbit_array, stride, nr_threads)
+        
+        print("sizeof(Output ctypes):", ctypes.sizeof(Output))
         
         # Transfer output
-        dtype = np.dtype([
+        c_dtype = np.dtype([
+                    ("sat_id", np.float64),
                     ("x", np.float64),
                     ("y", np.float64),
                     ("z", np.float64),
@@ -57,13 +114,49 @@ class Swarm:
         n_stride = (n_steps + stride - 1) // stride
         n = n_stride * self.nr_sats
         
-        output = np.ctypeslib.as_array(output_ptr, shape=(n,)).view(dtype).copy()
-
+        raw = np.ctypeslib.as_array(output_ptr, shape=(n,)).view(c_dtype).copy()
+    
+        
         a_normalizer = EARTH_SEMI_MAJOR_AXIS
-        output['x'] *= a_normalizer
-        output['y'] *= a_normalizer
-        output['z'] *= a_normalizer
-        c_propagator.free_output(output_ptr)
+        raw['x'] *= a_normalizer
+        raw['y'] *= a_normalizer
+        raw['z'] *= a_normalizer
+        
+        energy_normalizer = EARTH_MU / EARTH_SEMI_MAJOR_AXIS
+        raw['T'] *= energy_normalizer
+        raw['V'] *= energy_normalizer
+        raw['H'] *= energy_normalizer
+        self.lib.free_output(output_ptr)
+        
+        
+        time_offsets = np.arange(n_stride) * (dt * stride)
+        step_ut1 = ut1 + TimeDelta(time_offsets, format='sec')
+        times = step_ut1.utc.datetime64.astype("datetime64[ms]")
+        
+        dtype = np.dtype([
+            ("t", np.int64),
+            ("sat_id", np.float64),
+            ("x", np.float64),
+            ("y", np.float64),
+            ("z", np.float64),
+            ("T", np.float64),
+            ("V", np.float64),
+            ("H", np.float64),
+        ])
+        
+        output = np.empty(len(raw), dtype=dtype)
+        output['t'] = np.repeat(
+                                times.astype("datetime64[ms]").astype(np.int64), 
+                                self.nr_sats)
+        
+        output["sat_id"] = raw["sat_id"]
+        output['x'] = raw['x']
+        output['y'] = raw['y']
+        output['z'] = raw['z']
+        output['T'] = raw['T']
+        output['V'] = raw['V']
+        output['H'] = raw['H']
+
         
         print("\n--- PYTHON SIDE DEBUG ---")
         print("Första punkten i Python:", output[0])
@@ -73,36 +166,75 @@ class Swarm:
         return output
         
     
-    def eciToecef(self,UT1_time, state_eci):
+    def eciToecef(self, state_eci):
         '''
         Based on IERS conventions -> GCRS - ITRF conversion using implemented precession-nutation model (IAU2000/2006)
         '''
+        dt64 = state_eci["t"].astype("datetime64[ms]")
         
-        # for better accuracy we need to implement correction between ut1 and utc
-        refsystem      = self.types.julianDate()
-        UT1_encoded    = UT1_time.encode('utf-8')
+        utc = Time(
+            dt64,
+            format="datetime64",
+            scale="utc"
+        )
+
         
-        JD             = refsystem.currentJulianDateTime(UT1_encoded)
-        absolute_JD = (JD / 86400.0)
+        ecef_dtype = np.dtype([
+                    ("t", np.int64),
+                    ("sat_id", np.float64),
+                    ("x", np.float64),
+                    ("y", np.float64),
+                    ("z", np.float64),
+                    ("T", np.float64),
+                    ("V", np.float64),
+                    ("H", np.float64),
+                    ])
+                
         
-        self.states_ecef = eciToecef(absolute_JD, state_eci)
+        ecef = eciToecef(utc, state_eci)
+        states_ecef = np.empty(len(state_eci), dtype=ecef_dtype)
         
-        return self.states_ecef
+        states_ecef["t"] = state_eci["t"]
+        states_ecef["sat_id"] = state_eci["sat_id"]
+        states_ecef["x"] = ecef["x"]
+        states_ecef["y"] = ecef["y"]
+        states_ecef["z"] = ecef["z"]
+        states_ecef["T"] = state_eci["T"]
+        states_ecef["V"] = state_eci["V"]
+        states_ecef["H"] = state_eci["H"]
+        
+        return states_ecef
         
         
         
-    def eciTolla(self,states, **ut1_str):
+    def eciTolla(self,states):
         states_ecef = states.copy()
         if not hasattr(self, 'states_ecef'):
-            try:
-                UT1_time = ut1_str.pop("UT1")
-            except KeyError as e:
-                print(f"missing Universal Time string! {e.message}")
             
-            states_ecef = self.eciToecef(UT1_time, states)
+            states_ecef = self.eciToecef(states)
+        
+        lla_dtype = np.dtype([
+            ("t", np.int64),
+            ("sat_id", np.float64),
+            ("longitude", np.float64),
+            ("latitude", np.float64),
+            ("altitude", np.float64),
+            ("T", np.float64),
+            ("V", np.float64),
+            ("H", np.float64),
+            ])
         
         
-        states_lla = ecefTolla(states_ecef)
+        lla = ecefTolla(states_ecef)
+        states_lla = np.empty(len(states_ecef), dtype=lla_dtype)
+        
+        states_lla["t"] = states["t"]
+        states_lla["longitude"] = lla["longitude"]
+        states_lla["latitude"]  = lla["latitude"]
+        states_lla["altitude"]  = lla["altitude"]
+        states_lla["T"] = states["T"]
+        states_lla["V"] = states["V"]
+        states_lla["H"] = states["H"]
         
         return states_lla
     
@@ -150,34 +282,13 @@ class Swarm:
         return result
 
 
-    def obstruction(self, states, observer: tuple, elevation_map: np.ndarray):
+    def obstruction(self, states, observer):
         # calculate path of satellite through elevation map and determine if it is obstructed
         # ray marching
         
-        
         raise NotImplementedError("Not implemented yet")
+    
+    
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
         
         

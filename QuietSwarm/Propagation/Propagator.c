@@ -2,30 +2,13 @@
 #include <stdio.h> 
 #include <stddef.h>
 #include <stdbool.h>
+#include <omp.h>
 #include "propagator.h"
 
 
 
 void free_output(Output *buffer) {
     free(buffer);
-}
-
-
-void store_in_buffer(Output *buffer, const Swarm *swarm) {
-
-
-    for (int i = 0; i < swarm->n_sats; i++) {
-            buffer[i] = (Output){
-                swarm->state[i].positions.x,
-                swarm->state[i].positions.y,
-                swarm->state[i].positions.z,
-
-                swarm->energy[i].T.val,
-                swarm->energy[i].V.val,
-                swarm->energy[i].total
-            };
-        }
-
 }
 
 
@@ -39,8 +22,8 @@ void InitializeState(Swarm *swarm, OrbitalParameters *orbit) {
 
 }
 
-
-Output *propagate(int n_steps, double h, int n_sats, OrbitalParameters *orbit, int stride){
+Output *propagate(int n_steps, double h, int n_sats, OrbitalParameters *orbit, int stride,
+                  int nr_threads){
 
     
     int n_stride = (n_steps + stride - 1) / stride;
@@ -72,20 +55,35 @@ Output *propagate(int n_steps, double h, int n_sats, OrbitalParameters *orbit, i
 
     InitializeState(&swarm, orbit);
 
-   int out_idx = 0;
-    for (int step = 0; step < n_steps; step++) {
-        swarm_step(&swarm, h);
-        HamiltonianEnergy(&swarm);
-        if (step % stride == 0) {
-            if (out_idx < n_stride) {
-                store_in_buffer(buffer + (out_idx * n_sats), &swarm);
-                out_idx++;
-            }
-        }
-        PROGRESS(step + 1, n_steps);
-    }
-    printf("\n");
+    int out_idx = 0;
+    int actual_threads = (nr_threads > 0) ? nr_threads : omp_get_max_threads();
+    #pragma omp parallel for num_threads(actual_threads) schedule(static)
+    for (int sat=0; sat < n_sats; sat++) {
+        State state = swarm.state[sat];
 
+        for (int step = 0; step < n_steps; step++) {
+            state  = verlet_kick_drift_single_sat(state, h);
+            
+            if (step % stride == 0) {
+                
+                Hamiltonian H = compute_energy(&state);
+                
+                int sample = step / stride;
+
+                buffer[sample * n_sats + sat] = (Output){
+                    swarm.orbitParam[sat].sat_id,
+                    state.positions.x,
+                    state.positions.y,
+                    state.positions.z,
+                    H.T.val,
+                    H.V.val,
+                    H.total
+                };
+            }
+
+        }
+        swarm.state[sat] = state;
+    }
 
     free(swarm.orbitParam);
     free(swarm.state);

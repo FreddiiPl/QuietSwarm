@@ -1,7 +1,6 @@
 from QuietSwarm.Classes.ElevationData import OpenTopography
 from rasterio.merge import merge
 import rasterio
-from rasterio.io import MemoryFile
 
 
 def split_bbox(south, north, west, east, max_deg=1.0):

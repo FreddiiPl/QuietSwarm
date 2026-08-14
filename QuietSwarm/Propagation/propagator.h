@@ -6,21 +6,6 @@
 
 #include <math.h>
 
-/*
-Progress macro
-*/
-#define PROGRESS(step, total) \
-    do { \
-        int width = 40; \
-        float ratio = (float)(step) / (total); \
-        int pos = ratio * width; \
-        printf("\r["); \
-        for (int i = 0; i < width; i++) \
-            printf(i < pos ? "=" : " "); \
-        printf("] %3d%%", (int)(ratio * 100)); \
-        fflush(stdout); \
-    } while(0)
-
 
 /*
 For general numerical application and stability
@@ -49,6 +34,7 @@ typedef struct {
 } Vector3 ;
 
 typedef struct {
+    double sat_id;
     double rightAscensionOfAscendingNode;
     double argumentOfPerigee;
     double inclinationAngle;
@@ -89,6 +75,7 @@ typedef struct {
 } Swarm;
 
 typedef struct {
+    double sat_id;
     double x, y, z;
     double T,V,H;
 } Output;
@@ -98,9 +85,10 @@ typedef struct {
 State initialize_state(OrbitalParameters orbit);
 State verlet_kick_drift_single_sat(State current_state, double h);
 
-void HamiltonianEnergy(Swarm *swarm);
-void swarm_step(Swarm *swarm, double h);
 
-Output *propagate(int n_steps, double h, int n_sats, OrbitalParameters *orbit, int stride);
+Hamiltonian compute_energy(const State *state);
+
+Output *propagate(int n_steps, double h, int n_sats, OrbitalParameters *orbit, int stride,
+                  int nr_threads);
 
 #endif

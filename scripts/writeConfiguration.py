@@ -9,7 +9,11 @@ from QuietSwarm.Helpers.wgs84 import EARTH_SEMI_MAJOR_AXIS
 def configurateOrbits(data):
     nr_sats = np.int32(data[0])
     
-    sat_id    = np.array([i+1 for i in range(nr_sats)])
+    low = int(1e1)
+    high = int(1e12)
+    rng    = np.random.default_rng()
+    sat_id = rng.integers(low, high, size=nr_sats)
+    
     apoapsis  = np.array([np.float64(data[1])] * nr_sats)
     periapsis = np.array([np.float64(data[2])] * nr_sats)
     
@@ -66,7 +70,7 @@ def writeOrbitalConfiguration(filepath):
                 break
             
             configs = configurateOrbits(data)
-        
+
         for (i, key) in enumerate(headers):
             for val in configs[i]:
                 headers[key].append(val)

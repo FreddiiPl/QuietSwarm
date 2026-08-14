@@ -44,16 +44,3 @@ State verlet_kick_drift_single_sat(State current_state, double h) {
 
     return next_state;
 }
-
-
-void swarm_step(Swarm *swarm, double h) {
-    int n_sats = swarm -> n_sats;
-
-    for (int sat = 0; sat < n_sats; sat++) {
-        State *current_state = &swarm -> state[sat];
-
-        State next_state = verlet_kick_drift_single_sat(*current_state, h);
-
-        swarm->state[sat] = next_state;
-    }
-}

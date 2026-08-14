@@ -1,6 +1,7 @@
 **/__pycache__/
 **/*.egg-info/
 **/*.so
+**/*.o
 **/*.dat
 **/*.py[cod]
 **/*$py.class
@@ -16,4 +17,5 @@
 **/*.gpkg
 **/testing/
 **/*.hdf5
-**/files/:
+**/files/
+**/Modulator/
